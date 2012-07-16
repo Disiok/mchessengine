@@ -10,49 +10,46 @@ namespace std{
 		_property color = get_piece_color(p);
 		_property type = get_piece_type(p);
 		string s("");
-		switch (type){
-		case ROOK: s += "R"; break;
-		case KNIGHT: s += "N"; break;
-		case BISHOP: s += "B"; break;
-		case QUEEN: s += "Q"; break;
-		case KING: s += "K"; break;
-		case PAWN: break;
-		default: s += "Invalid Type"; break;
-		}
-		s = s + location_to_string(sq);
+		s = s + piecetype_to_string (type) + location_to_string(sq);
 		s += (color == WHITE) ? "(w)" : "(b)";
 		return s;
 	}
 	string move_to_string (_move m, position &p){
-		if (m == 0) return "null";
-		string s("");
+		if (m == 0) return "Null";
 		_location start = get_move_start(m);
 		_location end = get_move_end(m);
 		_property modifier = get_move_modifier(m);
+		string p_type = piecetype_to_string(get_piece_type(p.piece_search(start)));
 		switch (modifier){
-		case 0: return location_to_string(start) + "-" + location_to_string(end);
+		case 0: return p_type + location_to_string(start) + "-" + location_to_string(end);
 		case 1: return "0-0 (w)";
 		case 2: return "0-0-0 (w)";
 		case 3: return "0-0 (b)";
 		case 4: return "0-0-0 (b)";
 		case 5: return location_to_string(start) + ":" + location_to_string(end) + " e.p.";
+		default: return p_type + location_to_string(start) + ":" + location_to_string(end);
 		}
-		return s;
 	}
 	// TODO: Zobrist
 	position::position() : details(start_position), zobrist(0){
 		// king is always first
 		white_map[0] = create_piece (0x04, KING, WHITE);
 		black_map[0] = create_piece (0x74, KING, BLACK);
-		// initialize first rank
-		for (int i = 0; i < 4; i++){
-			white_map [i + 1] = create_piece (i, i + 2, WHITE);
-			black_map [i + 1] = create_piece (i + 0x70, i + 2, BLACK);
-		}
-		for (int i = 0; i < 3; i++){
-			white_map [i + 5] = create_piece (i + 0x05, 4 - i, WHITE);
-			black_map [i + 5] = create_piece (i + 0x75, 4 - i, BLACK);
-		}
+		// initialize other pieces
+		white_map[1] = create_piece (0x00, ROOK, WHITE);
+		black_map[1] = create_piece (0x70, ROOK, BLACK);
+		white_map[2] = create_piece (0x01, KNIGHT, WHITE);
+		black_map[2] = create_piece (0x71, KNIGHT, BLACK);
+		white_map[3] = create_piece (0x02, BISHOP, WHITE);
+		black_map[3] = create_piece (0x72, BISHOP, BLACK);
+		white_map[4] = create_piece (0x03, QUEEN, WHITE);
+		black_map[4] = create_piece (0x73, QUEEN, BLACK);
+		white_map[5] = create_piece (0x05, BISHOP, WHITE);
+		black_map[5] = create_piece (0x75, BISHOP, BLACK);
+		white_map[6] = create_piece (0x06, KNIGHT, WHITE);
+		black_map[6] = create_piece (0x76, KNIGHT, BLACK);
+		white_map[7] = create_piece (0x07, ROOK, WHITE);
+		black_map[7] = create_piece (0x77, ROOK, BLACK);
 		// initialize second rank with pawns
 		for (int i = 0; i < 8; i++){
 			white_map [i + 8] = create_piece (i + 0x10, PAWN, WHITE);
@@ -63,6 +60,11 @@ namespace std{
 		vector <_move> to_return;
 		_property turn_col = details % 2, opp_col = turn_col ^ 1;
 		_piece *turn_map = (turn_col == 0) ? white_map : black_map;
+
+		/* Useful pawn constants */
+		char *pawn_atk = (turn_col == 0) ? WHITE_PAWN_ATTACK : BLACK_PAWN_ATTACK;
+		char pawn_direction = (turn_col + 1) * 0x10;
+		int promotion_row = (opp_col * 0x70), start_row = 0x10 + 0x50 * turn_col;
 		if (is_in_check()){
 			// TODO: lots more of stuff
 		} else {
@@ -73,6 +75,10 @@ namespace std{
 				_location c_loc = get_piece_location(current_piece);
 				switch (c_type){
 				case PAWN:
+					_location next_loc = c_loc + pawn_direction;
+					if (piece_search(next_loc) == 0 && (next_loc & 0x88) == 0){
+
+					}
 					break;
 				case ROOK:
 					for (int i = 0; i < 4; i++)

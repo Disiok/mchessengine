@@ -16,6 +16,6 @@ int main() {
 	vector <_move> moves = p.move_gen();
 	int size = moves.size();
 	for (int i = 0; i < size; i++){
-		cout << moves[i] << endl;
+		cout << move_to_string(moves[i], p) << endl;
 	}
 }

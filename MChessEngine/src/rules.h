@@ -24,13 +24,31 @@ namespace std {
 	typedef unsigned char _location;	/* standard 0x88 location square. */
 	typedef unsigned long _zobrist;		/* Zobrist hash key */
 	// ======================End of Typedefs=====================
-
+	// ======================Classes======================
+	class position{
+	public:
+		_piece white_map[16];
+		_piece black_map[16];
+		_property details;		/* LSB->MSB, 1 bit for stm, 7 bits for plycount, 4 bits for cstl. rights. */
+		_zobrist zobrist;			// TODO: implement this!
+		position();
+		_piece piece_search(_location square);					/* When search map is unknown */
+		_piece piece_search(_location square, _property map);	/* WHITE for white, BLACK for black */
+		vector<_move> move_gen();
+		bool is_in_check ();
+	private:
+		void continuous_gen (_property type, _location start, vector<_move> &v,
+				_property map, _property opp_map, char difference);
+		void single_gen (_property type, _location start, vector<_move> &v,
+				_property map, _property opp_map, char difference);
+	};
+	// ======================End of Classes======================
 	// ======================Constants=====================
 	/* Piece constants */
 	const _property PAWN = 1;
-	const _property ROOK = 2;
-	const _property KNIGHT = 3;
-	const _property BISHOP = 4;
+	const _property KNIGHT = 2;
+	const _property BISHOP = 3;
+	const _property ROOK = 4;
 	const _property QUEEN = 5;
 	const _property KING = 6;
 	const _property WHITE = 0;	/* NB: previously defined as WHITE = 1, BLACK = -1 */
@@ -71,6 +89,8 @@ namespace std {
 	const char LINEAR [] = {UP, DOWN, LEFT, RIGHT};
 	const char DIAGONAL [] = {UP_RIGHT, UP_LEFT, DOWN_RIGHT, DOWN_LEFT};
 	const char KNIGHT_MOVE [] = {0x21,0x1f,-0x1f, -0x21, 0x12, -0xe, 0xe, -0x12};
+	const char WHITE_PAWN_ATTACK[] = {UP_RIGHT, UP_LEFT};
+	const char BLACK_PAWN_ATTACK[] = {DOWN_RIGHT, DOWN_LEFT};
 	/* Default Values */
 	const _property start_position = 0xf00;	/* detail value at startposition */
 	// ======================End of Constants======================
@@ -80,9 +100,8 @@ namespace std {
 	inline _location get_piece_location(_piece p){ return p & LOCATION_MASK; }
 	inline _property get_piece_color(_piece p){ return p >> COLOR_SH; }
 	inline _property get_piece_type(_piece p){ return (p >> EIGHT_SH) & TRIPLET_MASK; }
-	inline _piece create_piece (_location loc, _property type, _property color){
-		return (color << COLOR_SH) + (type << EIGHT_SH) + loc;
-	}
+	inline _piece create_piece (_location loc, _property type, _property color)
+		{ return (color << COLOR_SH) + (type << EIGHT_SH) + loc; }
 
 	/* _move accessors and mutators */
 	inline _location get_move_start(_move m){ return m & LOCATION_MASK; }
@@ -104,26 +123,17 @@ namespace std {
 		string s("");
 		return s + (char)('a' + (sq & TRIPLET_MASK)) + (char)('1' + (sq >> FOUR_SH));
 	}
+	inline string piecetype_to_string (_property type){
+		switch (type){
+		case ROOK: return "R";
+		case KNIGHT: return "N";
+		case BISHOP: return "B";
+		case QUEEN: return "Q";
+		case KING: return "K";
+		case PAWN: return "";
+		}
+		return "Invalid Type";
+	}
 	// ======================End of Functions======================
-
-	// ======================Classes======================
-	class position{
-	public:
-		_piece white_map[16];
-		_piece black_map[16];
-		_property details;
-		_zobrist zobrist;			// TODO: implement this!
-		position();
-		_piece piece_search(_location square);					/* When search map is unknown */
-		_piece piece_search(_location square, _property map);	/* WHITE for white, BLACK for black */
-		vector<_move> move_gen();
-		bool is_in_check ();
-	private:
-		void continuous_gen (_property type, _location start, vector<_move> &v,
-							 _property map, _property opp_map, char difference);
-		void single_gen (_property type, _location start, vector<_move> &v,
-						 _property map, _property opp_map, char difference);
-	};
-	// ======================End of Classes======================
 }
 #endif

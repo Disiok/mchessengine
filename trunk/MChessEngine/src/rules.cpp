@@ -4,7 +4,7 @@
 #include "rules.h"
 
 namespace std{
-	string string_descriptor (_piece p){
+	string piece_to_string (_piece p){
 		if (p == 0) return "Null";
 		_location sq = get_piece_location(p);
 		_property color = get_piece_color(p);
@@ -19,8 +19,24 @@ namespace std{
 		case PAWN: break;
 		default: s += "Invalid Type"; break;
 		}
-		s = s + (char)('a' + (sq & TRIPLET_MASK)) + (char)('1' + (sq >> FOUR_SH));
+		s = s + location_to_string(sq);
 		s += (color == WHITE) ? "(w)" : "(b)";
+		return s;
+	}
+	string move_to_string (_move m, position &p){
+		if (m == 0) return "Null";
+		string s("");
+		_location start = get_move_start(m);
+		_location end = get_move_end(m);
+		_property modifier = get_move_modifier(m);
+		switch (modifier){
+		case 0: return location_to_string(start) + "-" + location_to_string(end);
+		case 1: return "0-0 (w)";
+		case 2: return "0-0-0 (w)";
+		case 3: return "0-0 (b)";
+		case 4: return "0-0-0 (b)";
+		case 5: return location_to_string(start) + ":" + location_to_string(end) + " e.p.";
+		}
 		return s;
 	}
 	// TODO: Zobrist
@@ -56,7 +72,8 @@ namespace std{
 				_property c_type = get_piece_type(current_piece);
 				_location c_loc = get_piece_location(current_piece);
 				switch (c_type){
-				case PAWN: break;	//TODO: Handle pawns
+				case PAWN:
+					break;
 				case ROOK:
 					for (int i = 0; i < 4; i++)
 						continuous_gen(c_type, c_loc, to_return, turn_col, opp_col, LINEAR[i]);
@@ -135,7 +152,7 @@ namespace std{
 		}
 		return 0;
 	}
-	void position::continuous_gen (_piece type, _location start, vector<_move> v,
+	void position::continuous_gen (_property type, _location start, vector<_move> &v,
 								   _property map, _property opp_map, char diff){
 		_location current = start + diff;
 		while ((current & 0x88) == 0){
@@ -152,7 +169,7 @@ namespace std{
 			v.push_back(create_move(start, current));
 		}
 	}
-	inline void position::single_gen (_property type, _location start, vector<_move> v, _property map,
+	inline void position::single_gen (_property type, _location start, vector<_move> &v, _property map,
 									  _property opp_map, char diff){
 		_location target = start + diff;
 		if ((target & 0x88) == 0){

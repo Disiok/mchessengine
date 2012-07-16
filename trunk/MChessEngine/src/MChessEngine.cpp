@@ -13,9 +13,9 @@ using namespace std;
 
 int main() {
 	position p;
-	cout << "White Pieces" << endl;
-	for (int i = 0; i < 8; i++) cout << string_descriptor(p.piece_search(i, WHITE)) << endl;
-	cout << "Black Pieces" << endl;
-	for (int i = 0; i < 8; i++) cout << string_descriptor(p.piece_search(i + 0x70, BLACK)) << endl;
-	return 0;
+	vector <_move> moves = p.move_gen();
+	int size = moves.size();
+	for (int i = 0; i < size; i++){
+		cout << moves[i] << endl;
+	}
 }

@@ -41,8 +41,8 @@ namespace std {
 	const _property BKS_CASTLE = 3;
 	const _property BQS_CASTLE = 4;
 	const _property EN_PASSANT = 5;
-	const _property DOUBLE_ADVANCE = 6;
-	const _property PROMOTE_OFFSET = 5; /* use PROMOTION_OFFSET + piece type to obtain modifier */
+	const _property DOUBLE_ADVANCE = 0x20;
+	const _property PROMOTE_OFFSET = 4; /* use PROMOTION_OFFSET + piece type to obtain modifier */
 	/* Bit manipulation special values. */
 	/* ----------------------------------------------
 	 * Note on bitshift values: the values do not explain the code that it is used in.
@@ -83,18 +83,27 @@ namespace std {
 	inline _piece create_piece (_location loc, _property type, _property color){
 		return (color << COLOR_SH) + (type << EIGHT_SH) + loc;
 	}
+
 	/* _move accessors and mutators */
 	inline _location get_move_start(_move m){ return m & LOCATION_MASK; }
 	inline _location get_move_end (_move m) { return (m >> EIGHT_SH) & LOCATION_MASK; }
 	inline _property get_move_modifier (_move m) { return m >> SIXTEEN_SH; }
 	inline _move create_move (_location start, _location end, _property modifier = 0)
 		{	return (modifier << SIXTEEN_SH) + (end << EIGHT_SH) + start; }
+
 	/* Use this function to create modifiers for capture moves, stores value in bitstring
 	 * (MSB-> LSB) promotion piece type, victim piece type, attacker piece type. Organized
 	 * this way so direct comparison i.e. _move a > _move b is possible in move-ordering*/
 	inline _property create_capture_mod (_property attacker, _property victim, _property promote = 0)
 		{	return (promote << 6) + (victim << 3) + (attacker); }
-	string string_descriptor (_piece p);
+
+	/* utility / debug functions */
+	string piece_to_string (_piece p);
+	string move_to_string (_move m, position &p);
+	inline string location_to_string (_location sq){
+		string s("");
+		return s + (char)('a' + (sq & TRIPLET_MASK)) + (char)('1' + (sq >> FOUR_SH));
+	}
 	// ======================End of Functions======================
 
 	// ======================Classes======================
@@ -110,9 +119,9 @@ namespace std {
 		vector<_move> move_gen();
 		bool is_in_check ();
 	private:
-		void continuous_gen (_piece type, _location start, vector<_move> v,
+		void continuous_gen (_property type, _location start, vector<_move> &v,
 							 _property map, _property opp_map, char difference);
-		void single_gen (_property type, _location start, vector<_move> v,
+		void single_gen (_property type, _location start, vector<_move> &v,
 						 _property map, _property opp_map, char difference);
 	};
 	// ======================End of Classes======================

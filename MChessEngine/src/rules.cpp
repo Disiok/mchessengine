@@ -24,7 +24,7 @@ namespace std{
 		return s;
 	}
 	string move_to_string (_move m, position &p){
-		if (m == 0) return "Null";
+		if (m == 0) return "null";
 		string s("");
 		_location start = get_move_start(m);
 		_location end = get_move_end(m);

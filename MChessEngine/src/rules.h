@@ -12,6 +12,11 @@
 #include <vector>
 #include <iostream>
 
+//debug stuff
+#include<iomanip>
+#include<sstream>
+//debug stuff end
+
 namespace std {
 	// ======================Typedefs=====================
 	/* Past .rules class redefinitions.
@@ -29,18 +34,25 @@ namespace std {
 	public:
 		_piece white_map[16];
 		_piece black_map[16];
-		_property details;		/* LSB->MSB, 1 bit for stm, 7 bits for plycount, 4 bits for cstl. rights. */
+		_property details;		/* LSB->MSB, 1 bit for stm, 7 bits for plycount, 4 bits for cstl. rights.,
+										8 bits for position of a pawn capturable by en passant */
 		_zobrist zobrist;			// TODO: implement this!
 		position();
-		_piece piece_search(_location square);					/* When search map is unknown */
-		_piece piece_search(_location square, _property map);	/* WHITE for white, BLACK for black */
+		_piece& piece_search(_location square);					/* When search map is unknown */
+		_piece& piece_search(_location square, _property map);	/* WHITE for white, BLACK for black */
 		vector<_move> move_gen();
 		bool is_in_check ();
+		position* make_move(_move m);
+
+		//a conversion to std::string, creates a graphical representation
+		operator string ();
 	private:
 		void continuous_gen (_property type, _location start, vector<_move> &v,
 				_property map, _property opp_map, char difference);
 		void single_gen (_property type, _location start, vector<_move> &v,
 				_property map, _property opp_map, char difference);
+		inline signed char get_index(const _piece& p, bool enemyColour) const; //optimize me!
+		inline _piece& kill(_piece& p);
 	};
 	// ======================End of Classes======================
 	// ======================Constants=====================
@@ -93,6 +105,8 @@ namespace std {
 	const char BLACK_PAWN_ATTACK[] = {DOWN_RIGHT, DOWN_LEFT};
 	/* Default Values */
 	const _property start_position = 0xf00;	/* detail value at startposition */
+	/* No result */
+	extern _piece null_piece;
 	// ======================End of Constants======================
 
 	// ======================Functions======================
@@ -133,6 +147,48 @@ namespace std {
 		case PAWN: return "";
 		}
 		return "Invalid Type";
+	}
+	inline signed char position::get_index(const _piece &p, bool enemyColour=false) const {
+		//assumption: it exists
+		//-1 means it has been captured
+		//cout << "looking for " << p << endl;
+
+		//get the colour from the 12th least significant bit
+		bool isBlack = details & 1;
+		if (enemyColour) isBlack =!isBlack;
+		const _piece *map = ((isBlack) ? black_map : white_map);
+		for (unsigned char i=0; i < 16; ++i) {
+
+			//cout << "compared against" << map[i] << endl;
+			if (!map[i])
+				return -1;
+			if (map[i] == p)
+				return i;
+		}
+		return -1;
+	}
+	inline _piece& position::kill(_piece& p) {
+		bool isBlack = details & 1;
+		//got to replace colours since we are searching the enemy map
+		// we have to replace pieces on the enemy map since they are the one
+		//whose piece is being captured
+		_piece (& map)[16] = isBlack ? white_map : black_map;
+		unsigned char lastPieceIndex = 15;
+		for (; lastPieceIndex >= 0; --lastPieceIndex) {
+			if (map[lastPieceIndex])
+				break;
+		}
+		//true - search the map of the colour opposite to the colour whose turn it is
+		signed char indexToReplace = get_index(p, true);
+		if (indexToReplace == -1) {
+			cout << "tried to kill nonexistent piece: type " << ((p >> 8) & 7 )
+			<< " of square: " << std::hex << (int) (p & 255) << endl ;
+			return null_piece;
+		}
+		map[indexToReplace] = map[lastPieceIndex];
+		map[lastPieceIndex] = 0;
+
+		return map[indexToReplace];
 	}
 	// ======================End of Functions======================
 }

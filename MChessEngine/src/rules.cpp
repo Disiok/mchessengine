@@ -451,5 +451,36 @@ namespace std {
 
 		return result;
 	}
+
+	_piece& position::kill(_piece& p) {
+		//no racism
+		bool victimIsBlack = p >> 11 & 1;
+
+		_piece (& map)[16] = victimIsBlack ? black_map : white_map;
+
+		//true - search the map of the colour opposite to the colour whose turn it is
+		const signed char indexToReplace = get_index(p);
+
+		unsigned char lastPieceIndex = 15;
+		for (; lastPieceIndex >= 0; --lastPieceIndex) {
+			if (map[lastPieceIndex])
+				break;
+		}
+
+		if (indexToReplace == lastPieceIndex) {
+			map[lastPieceIndex] = 0;
+			return map[lastPieceIndex-1];
+		}
+
+		if (indexToReplace == -1) {
+			cout << "tried to kill nonexistent piece: type " << ((p >> 8) & 7 )
+			<< " of square: " << std::hex << (int) (p & 255) << endl ;
+			return null_piece;
+		}
+		map[indexToReplace] = map[lastPieceIndex];
+		map[lastPieceIndex] = 0;
+
+		return map[indexToReplace];
+	}
 }
 

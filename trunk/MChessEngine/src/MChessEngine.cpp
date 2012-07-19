@@ -58,11 +58,15 @@ int main() {
 	p.make_move(DOUBLE_ADVANCE << 16 | 0x4767);
 	//not a legal passant capture, but due to the flag, the en passant pawn
 	//should now be captured
-	p.make_move(EN_PASSANT << 16 | 0x4725);
+	p.make_move(EN_PASSANT << 16 | 0x3725);
 
 	//switching the en passant pawn
 	p.make_move(DOUBLE_ADVANCE << 16 | 0x4666);
 	p.make_move(DOUBLE_ADVANCE << 16 | 0x3717);
+	//the pawn has stepped on the bishop. from the graphic, it is not clear
+	//whether the pawn or bishop was captured but considering piece_search
+	//runs from the beginning, probably the bishop is gone. the white pawn
+	//is under the black pawn which captured the white bishop
 	p.make_move(EN_PASSANT << 16 | 0x3746);
 
 	//promotions

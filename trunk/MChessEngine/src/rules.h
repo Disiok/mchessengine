@@ -52,8 +52,8 @@ namespace std {
 				_property map, _property opp_map, char difference);
 		void single_gen (_property type, _location start, vector<_move> &v,
 				_property map, _property opp_map, char difference);
-		inline signed char get_index(const _piece& p, bool enemyColour) const; //optimize me!
-		inline _piece& kill(_piece& p);
+		inline signed char get_index(const _piece& p) const; //optimize me!
+		_piece& kill(_piece& p);
 	};
 	// ======================End of Classes======================
 	// ======================Constants=====================
@@ -149,48 +149,20 @@ namespace std {
 		}
 		return "Invalid Type";
 	}
-	inline signed char position::get_index(const _piece &p, bool enemyColour=false) const {
+	inline signed char position::get_index(const _piece &p) const {
 		//assumption: it exists
 		//-1 means it has been captured
 		//cout << "looking for " << p << endl;
 
-		//get the colour from the 12th least significant bit
-		bool isBlack = details & 1;
-		if (enemyColour) isBlack =!isBlack;
+		bool isBlack = (p >> 11);
 		const _piece *map = ((isBlack) ? black_map : white_map);
-		for (unsigned char i=0; i < 16; ++i) {
-
-			//cout << "compared against" << map[i] << endl;
-			if (!map[i])
-				return -1;
-			if (map[i] == p)
-				return i;
-		}
-		return -1;
+		signed char index = (&p - map);
+		//check if it's been deleted, return accordingly
+		if (map[index] == 0)
+			return -1;
+		return index;
 	}
-	inline _piece& position::kill(_piece& p) {
-		bool isBlack = details & 1;
-		//got to replace colours since we are searching the enemy map
-		// we have to replace pieces on the enemy map since they are the one
-		//whose piece is being captured
-		_piece (& map)[16] = isBlack ? white_map : black_map;
-		unsigned char lastPieceIndex = 15;
-		for (; lastPieceIndex >= 0; --lastPieceIndex) {
-			if (map[lastPieceIndex])
-				break;
-		}
-		//true - search the map of the colour opposite to the colour whose turn it is
-		signed char indexToReplace = get_index(p, true);
-		if (indexToReplace == -1) {
-			cout << "tried to kill nonexistent piece: type " << ((p >> 8) & 7 )
-			<< " of square: " << std::hex << (int) (p & 255) << endl ;
-			return null_piece;
-		}
-		map[indexToReplace] = map[lastPieceIndex];
-		map[lastPieceIndex] = 0;
 
-		return map[indexToReplace];
-	}
 	// ======================End of Functions======================
 }
 #endif

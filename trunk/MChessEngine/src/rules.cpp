@@ -1,48 +1,17 @@
 /*
  * rules.cpp
+ * ============================================
+ * (c) Spark Team, July 2012.
+ * The Spark Team reserves all intellectual rights to the following source code.
+ * The code may not be distributed or modified for personal use, except with the
+ * express permission of a team member.
+ * ============================================
+ * Contains the implementations functions present in previous .rules package.
  */
-#include "rules.h"
 
-namespace std {
-	_piece null_piece = 0;
+#include "myriad.h"
 
-	string piece_to_string(_piece p) {
-		if(p == null_piece) return "Null";
-
-		_location sq = get_piece_location(p);
-		_property color = get_piece_color(p);
-		_property type = get_piece_type(p);
-		string s("");
-		s += piecetype_to_string(type) + location_to_string(sq);
-		s += (color == WHITE) ? "(w)" : "(b)";
-		return s;
-	}
-	string move_to_string(_move m, position& p) {
-		if(m == null_piece) return "Null";
-
-		_location start = get_move_start(m);
-		_location end = get_move_end(m);
-		_property modifier = get_move_modifier(m);
-		string p_type = piecetype_to_string(get_piece_type(p.piece_search(start)));
-
-		switch(modifier) {
-		case 0:
-			return p_type + location_to_string(start) + "-" + location_to_string(end);
-		case 1:
-			return "0-0 (w)";
-		case 2:
-			return "0-0-0 (w)";
-		case 3:
-			return "0-0 (b)";
-		case 4:
-			return "0-0-0 (b)";
-		case 5:
-			return location_to_string(start) + ":" + location_to_string(end) + " e.p.";
-		default:
-			return p_type + location_to_string(start) + ":" + location_to_string(end);
-		}
-	}
-	// TODO: Zobrist
+namespace myriad {
 	position::position() : details(start_position), zobrist(0) {
 		// king is always first
 		white_map[0] = create_piece(0x04, KING, WHITE);
@@ -62,7 +31,6 @@ namespace std {
 		black_map[6] = create_piece(0x76, KNIGHT, BLACK);
 		white_map[7] = create_piece(0x07, ROOK, WHITE);
 		black_map[7] = create_piece(0x77, ROOK, BLACK);
-
 		// initialize second rank with pawns
 		for(int i = 0; i < 8; i++) {
 			white_map [i + 8] = create_piece(i + 0x10, PAWN, WHITE);
@@ -72,13 +40,13 @@ namespace std {
 	vector <_move> position::move_gen() {
 		vector <_move> to_return;
 		_property turn_col = details % 2, opp_col = turn_col ^ 1;
-		_piece* turn_map = (turn_col == 0) ? white_map : black_map;
+		_piece* turn_map = turn_col ? black_map : white_map;
 
 		/* Useful pawn constants */
-		//GCC: cannot convert const char* to char* without a cast
-		const char* pawn_atk = (turn_col == 0) ? WHITE_PAWN_ATTACK : BLACK_PAWN_ATTACK;
-		char pawn_direction = (turn_col + 1) * 0x10;
-		int promotion_row = (opp_col * 0x70), start_row = 0x10 + 0x50 * turn_col;
+		const char* pawn_atk = turn_col ? BLACK_PAWN_ATTACK : WHITE_PAWN_ATTACK;
+		signed char pawn_direction = (turn_col + 1) * 0x10;
+		_location promotion_row = (opp_col * 0x70), start_row = 0x10 + 0x50 * turn_col,
+				  epsq = details >> EP_SH;
 
 		if(is_in_check()) {
 			// TODO: lots more of stuff
@@ -86,401 +54,252 @@ namespace std {
 			// TODO: guardian maps
 			for(int i = 0; i < 16; i++) {
 				_piece current_piece = turn_map [i];
-				_property c_type = get_piece_type(current_piece);
-				_location c_loc = get_piece_location(current_piece);
-				//GCC: cannot skip initialization of a variable by jumping to another case
-				_location next_loc;
-
+				_property c_type = get_piece_type(current_piece), type;
+				_location c_loc = get_piece_location(current_piece), next_loc, right, left;
 				switch(c_type) {
 				case PAWN:
+					/* Pawn advances */
 					next_loc = c_loc + pawn_direction;
-
-					if(piece_search(next_loc) == null_piece && (next_loc & 0x88) == 0) {
-
+					if(piece_search(next_loc) == zero_piece) {
+						// in case of direct adv., sq & 0x88 always == 0, provided only legal positions
+						_location row = c_loc & 0x70;
+						if (row == start_row){
+							next_loc += pawn_direction;
+							if (piece_search(next_loc) == zero_piece)
+								to_return.push_back(create_move(c_loc, next_loc, DOUBLE_ADVANCE));
+						} else if (row == promotion_row){
+							for (_property i = KNIGHT; i < KING; i++)
+								to_return.push_back(create_move(c_loc, next_loc, PROMOTE_OFFSET + i));
+						} else to_return.push_back(create_move(c_loc, next_loc));
 					}
 
+					/* En-passant */
+					right = c_loc + RIGHT;
+					left = c_loc + LEFT;
+					if (right == epsq || left == epsq){
+						//TODO: handle tricky ep case
+					}
+
+					/* Pawn captures */
+					next_loc = c_loc + pawn_atk[0];
+					// note: type of zero_piece is 0 (or zero_piece itself).
+					if ((type = get_piece_type(piece_search(next_loc, opp_col))) != zero_piece){
+						// truth of search(next_loc) != 0 implies truth of sq & 0x88 == 0, given legal
+						if (next_loc & 0x70 == promotion_row){
+							for (_property i = KNIGHT; i < KING; i++){
+								_property capture_mod = create_capture_mod(PAWN, type, i);
+								to_return.push_back(create_move(c_loc, next_loc, capture_mod));
+							}
+						} else {
+							_property capture_mod = create_capture_mod(PAWN, type, i);
+							to_return.push_back(create_move(c_loc, next_loc, capture_mod));
+						}
+					}
 					break;
 				case ROOK:
-
 					for(int i = 0; i < 4; i++)
-						continuous_gen(c_type, c_loc, to_return, turn_col, opp_col, LINEAR[i]);
-
+						continuous_gen(c_type, c_loc, to_return, turn_col, LINEAR[i]);
 					break;
 				case QUEEN:
-
 					for(int i = 0; i < 8; i++)
-						continuous_gen(c_type, c_loc, to_return, turn_col, opp_col, RADIAL[i]);
-
+						continuous_gen(c_type, c_loc, to_return, turn_col, RADIAL[i]);
 					break;
 				case BISHOP:
-
 					for(int i = 0; i < 4; i++)
-						continuous_gen(c_type, c_loc, to_return, turn_col, opp_col, DIAGONAL[i]);
-
+						continuous_gen(c_type, c_loc, to_return, turn_col, DIAGONAL[i]);
 					break;
 				case KNIGHT:
-
 					for(int i = 0; i < 8; i++)
-						single_gen(c_type, c_loc, to_return, turn_col, opp_col, KNIGHT_MOVE[i]);
-
+						single_gen(c_type, c_loc, to_return, opp_col, KNIGHT_MOVE[i]);
 					break;
 				case KING:
-
+					// XXX fix king walking into check
 					for(int i = 0; i < 8; i++)
-						single_gen(c_type, c_loc, to_return, turn_col, opp_col, RADIAL[i]);
-
+						single_gen(c_type, c_loc, to_return, opp_col, RADIAL[i]);
 					break;
 				}
 			}
 		}
-
 		return to_return;
 	}
 	bool position::is_in_check() {
 		_property turn_col = details % 2, opp_col = (turn_col ^ 1), attacker_type;
-		_piece* turn_map = (turn_col == 0) ? white_map : black_map;
+		_piece* turn_map = turn_col ? black_map : white_map;
 		_piece obstruct;
 		_location king = get_piece_location(turn_map[0]), current = king;
 		bool melee;	// flag if pawn attacks available
 		int pawn_dir = 3 + opp_col * 2;
-
 		for(int i = 0; i < 8; i++) {
 			melee = true;
 			current = king + RADIAL[i];
-
 			while((current & 0x88) == 0) {
 				obstruct = piece_search(current);
-
 				if(obstruct != 0) {
 					if(get_piece_color(obstruct) == turn_col) break;
-
-					attacker_type = get_piece_type(obstruct);
-
 					switch(attacker_type) {
 					case PAWN:
-
 						if(melee && ((pawn_dir < i) && i < (pawn_dir + 3))) return true;
-
 						break;
-					case ROOK:
-
-						if(i < 4) return true;
-
-						break;
-					case BISHOP:
-
-						if(i > 3) return true;
-
-						break;
-					case QUEEN:
-						return true;
+					case ROOK  : if(i < 4) return true; break;
+					case BISHOP: if(i > 3) return true; break;
+					case QUEEN : return true;
 					}
-
 					break;
 				}
-
 				current += RADIAL[i];
 				melee = false;
 			}
 		}
-
 		for(int i = 0; i < 8; i++)
-			if(piece_search(current + KNIGHT_MOVE[i], opp_col) != 0) return true;
-
+			if(piece_search(current + KNIGHT_MOVE[i], opp_col) != zero_piece) return true;
 		return false;
 	}
 	_piece& position::piece_search(_location square, _property map) {
 		_piece* search_map = (map == WHITE ? white_map : black_map);   // search one map only
-
 		for(int i = 0; i < 16; i++) {
-			//can't turn 0 into a _piece&, so this serves the same purpose
-			if(search_map[i] == 0) return null_piece;
-
 			if(get_piece_location(search_map[i]) == square) return search_map[i];
+			if(search_map[i] == zero_piece) return zero_piece;
 		}
-
-		return null_piece;
+		return zero_piece;
 	}
 	_piece& position::piece_search(_location square) {
-		// search both maps
+		// search white's then black's map
 		for(int i = 0; i < 16; i++) {
-			if(white_map[i] == 0) break;
-
 			if(get_piece_location(white_map[i]) == square) return white_map [i];
+			if(white_map[i] == zero_piece) break;
 		}
-
 		for(int i = 0; i < 16; i++) {
-			if(black_map[i] == 0) break;
-
 			if(get_piece_location(black_map[i]) == square) return black_map [i];
+			if(black_map[i] == zero_piece) break;
 		}
-
-		return null_piece;
+		return zero_piece;
 	}
-	void position::continuous_gen(_property type, _location start, vector<_move> &v,
-	                              _property map, _property opp_map, char diff) {
-		_location current = start + diff;
+	void position::make_move(_move m) {
+		bool is_black = details & 1;
+		_piece(& map)[16] = is_black ? black_map : white_map;
+		details &= 0xff00fff;		// erase ep value, use only 28 bits to avoid cast to long
+		details ^= 1;				// switch side to move
+		_property modifier = get_move_modifier(m);
+		_location start = get_move_start(m), end = get_move_end(m);
+		_piece& moving = piece_search (start, is_black);
 
+		switch (modifier){
+		case 0:
+			moving ^= end ^ start;
+			if (get_piece_type(moving) == ROOK){
+				switch (start){
+				case 0x00: details &= 0xffdff; break;	/* revoke appropriate cstl. rights */
+				case 0x07: details &= 0xffeff; break;
+				case 0x70: details &= 0xff7ff; break;
+				case 0x77: details &= 0xffbff; break;
+				}
+			}
+			return;
+		case WKS_CASTLE: case BKS_CASTLE:
+			map[0] += 0x02;
+			moving -= 0x02;
+			details &= is_black ? 0x003ff : 0x00cff;
+			return;
+		case WQS_CASTLE: case BQS_CASTLE:
+			map[0] -= 0x02;
+			moving += 0x03;
+			details &= is_black ? 0x03ff : 0xc0ff;
+			return;
+		case DOUBLE_ADVANCE:
+			start ^= end ^ start;
+			details += (end << EP_SH);
+			return;
+		case EN_PASSANT:
+			moving = (moving & 0xf00) + end + (is_black ? DOWN : UP);
+			kill (piece_search(end, !is_black), !is_black); // assuming the end square is the capturable pawn
+			break;
+		default:
+			if (modifier < 10) moving = create_piece (end, modifier - PROMOTE_OFFSET, is_black);
+			else {
+				kill(piece_search(end, !is_black), !is_black);
+				_property promote_to = modifier >> 6;
+				if (promote_to == 0){
+					if (get_piece_type(moving) == ROOK){
+						switch (start){
+						case 0x00: details &= 0xffdff; break; /* revoke appropriate cstl. rights */
+						case 0x07: details &= 0xffeff; break;
+						case 0x70: details &= 0xff7ff; break;
+						case 0x77: details &= 0xffbff; break;
+						}
+					}
+				} else moving = create_piece (end, promote_to, is_black);
+			}
+			return;
+		}
+	}
+	// Implementations of helper methods
+	void position::continuous_gen(_property type, _location start, vector<_move> &v,
+	                              _property col, char diff) {
+		_location current = start + diff;
 		while((current & 0x88) == 0) {
 			_piece obstruct = piece_search(current);
-
-			if(obstruct != 0) {
-				if(get_piece_color(obstruct) == map) break;
+			if(obstruct == zero_piece) v.push_back(create_move(start, current));
+			else {
+				if(get_piece_color(obstruct) == col) break;
 				else {
-					v.push_back(create_move(start, current, create_capture_mod(type,
-					                        get_piece_type(obstruct))));
+					_property capture_mod = create_capture_mod (type, get_piece_type(obstruct));
+					v.push_back(create_move(start, current, capture_mod));
 					break;
 				}
 			}
-
 			current += diff;
-			v.push_back(create_move(start, current));
 		}
 	}
-	inline void position::single_gen(_property type, _location start, vector<_move> &v, _property map,
-	                                 _property opp_map, char diff) {
+	inline void position::single_gen(_property type, _location start, vector<_move> &v,
+									 _property opp_col, char diff) {
 		_location target = start + diff;
-
 		if((target & 0x88) == 0) {
 			_piece obstruct = piece_search(target);
-
-			if(obstruct == 0) v.push_back(create_move(start, target));
-			else if(get_piece_color(obstruct) == opp_map) {
+			if(obstruct == zero_piece) v.push_back(create_move(start, target));
+			else if(get_piece_color(obstruct) == opp_col) {
 				_property capture_mod = create_capture_mod(type, get_piece_type(obstruct));
 				v.push_back(create_move(start, target, capture_mod));
 			}
 		}
 	}
+	_piece** position::create_guardian_map (_property col, _property opp_col){
+		_piece *turn_map = opp_col ? white_map : black_map;
+		_location king = get_piece_location(turn_map[0]), current;
+		_piece **guardian_map = new _piece* [8], obstruct;
+		_property obstruct_col, obstruct_type;
 
-	position* position::make_move(_move m) {
-
-
-		_property modifier = get_move_modifier(m);
-		bool isBlack;
-		_piece(& map)[16] = (isBlack = (details & 1)) ? black_map : white_map;
-
-		//clear the en passant piece if two turns have passed
-		//i.e. if the en passant piece's colour is the stm colour
-		if ((piece_search(details >> 12) >> 7) == isBlack)
-			//sizeof(int) is probably 32
-			details &= 0xfff00fff;
-
-		if(WKS_CASTLE <= modifier && modifier <= BQS_CASTLE) {
-			//which side
-			_piece& king = map[0];
-
-			//true or false: kingside or queenside rook
-			if(modifier % 2) {
-				king ^= 0x02;
-				piece_search(0x07 + isBlack * 0x70, isBlack) ^= 0x02;
-			}
-			else {
-				king ^= 0x06;
-				piece_search(0x00 + isBlack * 0x70, isBlack) ^= 0x03;
-			}
-
-			//revoke castling rights
-			if(isBlack) {
-				details &= 0x03ff;
-			}
-			else {
-				details &= 0xc0ff;
-			}
-		}
-		else {
-			_location initialLocation = get_move_start(m),
-			                            finalLocation = get_move_end(m);
-			_piece& actor = piece_search(initialLocation, isBlack);
-			cout << "piece to move looks like this " << std::hex << setw(4) << setfill('0') << actor << endl;
-
-			if(actor == null_piece) {
-				cout << "tried to move nonexistent piece at " << std::hex << setw(2) <<setfill('0') << (int)initialLocation << endl;
-				return this;
-			}
-
-			std::cout << "piece's current position: " << std::hex << setw(2) << setfill('0') << (actor & 255) << endl;
-
-			_piece& enPassantPawn = piece_search( (details >> 12) & 255);
-
-			switch(modifier) {
-			case EN_PASSANT:
-				kill(enPassantPawn);
-				details &=0xfff00fff;
-				break;
-
-			case DOUBLE_ADVANCE:
-				details &= 0xfff00fff;
-				details ^= (finalLocation << 12);
-				break;
-			default:
-				//Promotion
-				if(modifier >= 6) {
-					//assuming sizeof (unsigned short) == 16
-					switch(modifier) {
-					case 4 + KNIGHT:
-						actor &= 0xf8ff;
-						actor ^= (KNIGHT << 8);
-						break;
-					case 4+BISHOP:
-						actor &= 0xf8ff;
-						actor ^= (BISHOP << 8);
-						break;
-					case 4+ROOK:
-						actor &= 0xf8ff;
-						actor ^= (ROOK << 8);
-						break;
-					case 4+QUEEN:
-						actor &= 0xf8ff;
-						actor ^= (QUEEN << 8);
-						break;
-					default:
-						cout << "bad promotion." << endl;
-						assert(0);
+		for (int i = 0; i < 8; i ++){
+			current = king + RADIAL[i];
+			bool guardian = false;
+			while ((current & 0x88) == 0){
+				obstruct = piece_search(current);
+				if (obstruct != zero_piece){
+					if (!guardian) guardian_map[0][i] = obstruct;
+					else {
+						if ((obstruct_col = get_piece_color(obstruct)) == col) {
+							guardian_map[0][i] = zero_piece; // relieve guardian
+							break;
+						} else {
+							obstruct_type = get_piece_type(obstruct);
+							//TODO: what's going on here? Dk how to translate over Simon's code.
+							guardian_map[1][i] = obstruct;
+							break;
+						}
 					}
 				}
-				//Plain old move, possibly with a capture
-				else {
-					_piece& potentialVictim = piece_search(finalLocation, !isBlack);
-
-					if(potentialVictim != null_piece) {
-						std::cout << "potential victim piece: " << hex << setfill('0') << setw(4) << potentialVictim << endl;
-						std::cout << "if successfully killed, we should get simply another piece: " << hex << setfill('0') << setw(4) << kill(potentialVictim) << endl;
-					}
-
-				}
-
-				break;
+				current += RADIAL[i];
 			}
-
-
-			actor ^= finalLocation ^ initialLocation;
-
-			std::cout << "moved from " << std::hex <<setw(2)<<setfill('0')<< (short)initialLocation
-			          << " to " << std::hex << setw(2)<<setfill('0')<<(short) finalLocation << endl;
-
-			std::cout << "piece's current position: " << hex << setfill('0') << setw(2) << (actor & 255) << endl;
-			cout << "piece which moved looks like this " << std::hex << setw(4) << setfill('0') << actor << endl;
 		}
-
-
-		//change the side to move
-		details ^= 1;
-
-		std::cout << (string)(*this);
-
-		std::cout << "Details:" << endl <<
-		          "wks: " << (details >> 8 & 1) << endl <<
-		          "wqs: " << (details >> 9 & 1) << endl <<
-		          "bks: " << (details >>10 & 1) << endl <<
-		          "bqs: " << (details >> 11 & 1) << endl <<
-		          "en passant pawn: " << std::hex << setw(4) << setfill('0') << (details>>12 & 255) << endl;
-
-		std::cout << "side to move: " << (details & 1) << endl;
-
-		return this;
+		return guardian_map;
 	}
-
-
-
-	position::operator string() {
-		char** board = new char*[8];
-
-		for(int i = 0; i < 8; ++i) {
-			board[i] = new char[8];
-
-			for(int j = 0; j < 8; ++j) {
-				board[i][j] = '.';
+	inline void position::kill(_piece& p, _property victim_map) {
+		_piece* search_map = victim_map ? black_map : white_map;
+		for (int i = 15; i > 0; i--){	// king never subject to kill
+			if (search_map [i] != 0){
+				p = search_map[i];
+				search_map[i] = zero_piece;
+				return;
 			}
 		}
-
-		stringstream ss;
-
-		//plot white pieces
-		for(int i = 0; i < 16; ++i) {
-			_piece p = white_map[i];
-
-			if(p == 0) break;
-
-			int row = (p & 255) >> 4;
-			int column = (p & 15);
-
-			string typeString = piecetype_to_string((p >> 8) & 7);
-
-			if(typeString == "")
-				board[row][column] = 'P';
-			else board[row][column] =  typeString.c_str()[0];
-
-		}
-
-		ss.str("");
-		ss.clear();
-
-		//black pieces
-		for(int i = 0; i < 16; ++i) {
-			_piece p = black_map[i];
-
-			if(p == 0) break;
-
-			int row = (p & 255) >> 4;
-			int column = (p & 15);
-
-			ss << ((p>>8) & 7);
-
-
-			string typeString = piecetype_to_string((p >> 8) & 7);
-
-			//make black lowercase
-			if(typeString == "")
-				board[row][column] = 'p';
-			else board[row][column] =  typeString.c_str()[0] + 32;
-		}
-
-		//time ta draw
-		string result;
-
-		for(int i = 7; i >= 0; --i) {
-			for(int j = 0; j < 8; ++j) {
-				result += board[i][j];
-			}
-
-			result += '\n';
-			delete[] board[i];
-		}
-
-		delete[] board;
-
-		return result;
-	}
-
-	_piece& position::kill(_piece& p) {
-		//no racism
-		bool victimIsBlack = p >> 11 & 1;
-
-		_piece (& map)[16] = victimIsBlack ? black_map : white_map;
-
-		//true - search the map of the colour opposite to the colour whose turn it is
-		const signed char indexToReplace = get_index(p);
-
-		unsigned char lastPieceIndex = 15;
-		for (; lastPieceIndex >= 0; --lastPieceIndex) {
-			if (map[lastPieceIndex])
-				break;
-		}
-
-		if (indexToReplace == lastPieceIndex) {
-			map[lastPieceIndex] = 0;
-			return map[lastPieceIndex-1];
-		}
-
-		if (indexToReplace == -1) {
-			cout << "tried to kill nonexistent piece: type " << ((p >> 8) & 7 )
-			<< " of square: " << std::hex << (int) (p & 255) << endl ;
-			return null_piece;
-		}
-		map[indexToReplace] = map[lastPieceIndex];
-		map[lastPieceIndex] = 0;
-
-		return map[indexToReplace];
 	}
 }
-

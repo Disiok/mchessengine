@@ -7,8 +7,9 @@
 //============================================================================
 
 #include <iostream>
-#include "rules.h"
+#include "myriad.h"
 
+using namespace myriad;
 using namespace std;
 
 int main() {
@@ -81,4 +82,9 @@ int main() {
 	//promotion to queen
 	//p.make_move();
 	return 0;
+
+	int i = 3;
+	if (i){
+		cout << "Hi";
+	}
 }

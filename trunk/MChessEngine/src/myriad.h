@@ -1,24 +1,24 @@
 /*
- * rules.h
- * Successor to the previous rules package.
- * Implements the rules of a chess game under a name-space.
- *
+ * myriad.h
+ * ============================================
  * (c) Spark Team, July 2012.
+ * The Spark Team reserves all intellectual rights to the following source code.
+ * The code may not be distributed or modified for personal use, except with the
+ * express permission of a team member.
+ * ============================================
+ * Contains all the essential declarations for use in the Myriad engine.
  */
 #ifndef RULES_H
 #define RULES_H
 
 #include <string>
 #include <vector>
+#include <sstream>
 #include <iostream>
 
-//debug stuff
-#include<iomanip>
-#include<sstream>
-#include<cassert>
-//debug stuff end
+using namespace std;
 
-namespace std {
+namespace myriad {
 	// ======================Typedefs=====================
 	/* Past .rules class redefinitions.
 	 * Note: object versions replaced with bit-strings.*/
@@ -36,24 +36,23 @@ namespace std {
 		_piece white_map[16];
 		_piece black_map[16];
 		_property details;		/* LSB->MSB, 1 bit for stm, 7 bits for plycount, 4 bits for cstl. rights.,
-										8 bits for position of a pawn capturable by en passant */
-		_zobrist zobrist;			// TODO: implement this!
+								   8 bits for position of pawn capturable by en passant */
+		_zobrist zobrist;		// TODO: implement this!
 		position();
+		bool is_in_check ();
+		void make_move(_move m);
 		_piece& piece_search(_location square);					/* When search map is unknown */
 		_piece& piece_search(_location square, _property map);	/* WHITE for white, BLACK for black */
 		vector<_move> move_gen();
-		bool is_in_check ();
-		position* make_move(_move m);
-
-		//a conversion to std::string, creates a graphical representation
+		//a conversion to std::string, creates a graphical representation -> see XXX note in utils.cpp
 		operator string ();
 	private:
 		void continuous_gen (_property type, _location start, vector<_move> &v,
-				_property map, _property opp_map, char difference);
+				_property col, char difference);
 		void single_gen (_property type, _location start, vector<_move> &v,
-				_property map, _property opp_map, char difference);
-		inline signed char get_index(const _piece& p) const; //optimize me!
-		_piece& kill(_piece& p);
+				_property opp_col, char difference);
+		_piece** create_guardian_map (_property col, _property opp_col);
+		void kill(_piece& p, _property map);
 	};
 	// ======================End of Classes======================
 	// ======================Constants=====================
@@ -64,8 +63,9 @@ namespace std {
 	const _property ROOK = 4;
 	const _property QUEEN = 5;
 	const _property KING = 6;
-	const _property WHITE = 0;	/* NB: previously defined as WHITE = 1, BLACK = -1 */
-	const _property BLACK = 1;	/* use colour ^ 1 to get reverse colour, not multiply by -1 */
+	const _property WHITE = 0;	/* NB: previously defined as WHITE = 1, BLACK = -1 use colour ^ 1 */
+	const _property BLACK = 1;	/* or !colour to get the other colour, not multiply by -1 */
+
 	/* Move constants */
 	const _property WKS_CASTLE = 1;
 	const _property WQS_CASTLE = 2;
@@ -74,6 +74,7 @@ namespace std {
 	const _property EN_PASSANT = 5;
 	const _property DOUBLE_ADVANCE = 0x20;
 	const _property PROMOTE_OFFSET = 4; /* use PROMOTION_OFFSET + piece type to obtain modifier */
+
 	/* Bit manipulation special values. */
 	/* ----------------------------------------------
 	 * Note on bitshift values: the values do not explain the code that it is used in.
@@ -85,10 +86,12 @@ namespace std {
 	const int FOUR_SH = 4;
 	const int EIGHT_SH = 8;
 	const int SIXTEEN_SH = 16;
-	const int COLOR_SH = 11;	/* used for piece colour bit only */
+	const int COLOR_SH = 11;		/* used for piece colour bit */
+	const int EP_SH = 12; 			/* used for en passant square in _details variable */
 	const int LOCATION_MASK = 0xff;
 	const int NIBBLE_MASK = 0xf;
-	const int TRIPLET_MASK = 0x7;
+	const int TRIPLET_MASK = 0x7;	/* used for the file of any _location */
+
 	/* 0x88 Differences */
 	const char UP = 0x10;
 	const char DOWN = -0x10;
@@ -101,13 +104,14 @@ namespace std {
 	const char RADIAL [] = {UP, DOWN, LEFT, RIGHT, UP_RIGHT, UP_LEFT, DOWN_RIGHT, DOWN_LEFT};
 	const char LINEAR [] = {UP, DOWN, LEFT, RIGHT};
 	const char DIAGONAL [] = {UP_RIGHT, UP_LEFT, DOWN_RIGHT, DOWN_LEFT};
-	const char KNIGHT_MOVE [] = {0x21,0x1f,-0x1f, -0x21, 0x12, -0xe, 0xe, -0x12};
+	const char KNIGHT_MOVE [] = {0x21, 0x1f, -0x1f, -0x21, 0x12, -0xe, 0xe, -0x12};
 	const char WHITE_PAWN_ATTACK[] = {UP_RIGHT, UP_LEFT};
 	const char BLACK_PAWN_ATTACK[] = {DOWN_RIGHT, DOWN_LEFT};
+
 	/* Default Values */
-	const _property start_position = 0xf00;	/* detail value at startposition */
-	/* No result */
-	extern _piece null_piece;
+	const _property start_position = 0xf00;		/* detail value at startposition */
+	_piece zero_piece = 0; 				/* WARNING: g++ will not allow this to be declared const,
+	 	 	 	 	 	 	 	 	 	 * but DO NOT CHANGE this value. */
 	// ======================End of Constants======================
 
 	// ======================Functions======================
@@ -124,45 +128,19 @@ namespace std {
 	inline _property get_move_modifier (_move m) { return m >> SIXTEEN_SH; }
 	inline _move create_move (_location start, _location end, _property modifier = 0)
 		{	return (modifier << SIXTEEN_SH) + (end << EIGHT_SH) + start; }
-
 	/* Use this function to create modifiers for capture moves, stores value in bitstring
 	 * (MSB-> LSB) promotion piece type, victim piece type, attacker piece type. Organized
-	 * this way so direct comparison i.e. _move a > _move b is possible in move-ordering*/
+	 * this way so direct comparison i.e. _move a > _move b is possible in move-ordering */
 	inline _property create_capture_mod (_property attacker, _property victim, _property promote = 0)
 		{	return (promote << 6) + (victim << 3) + (attacker); }
 
 	/* utility / debug functions */
 	string piece_to_string (_piece p);
 	string move_to_string (_move m, position &p);
-	inline string location_to_string (_location sq){
-		string s("");
-		return s + (char)('a' + (sq & TRIPLET_MASK)) + (char)('1' + (sq >> FOUR_SH));
-	}
-	inline string piecetype_to_string (_property type){
-		switch (type){
-		case ROOK: return "R";
-		case KNIGHT: return "N";
-		case BISHOP: return "B";
-		case QUEEN: return "Q";
-		case KING: return "K";
-		case PAWN: return "";
-		}
-		return "Invalid Type";
-	}
-	inline signed char position::get_index(const _piece &p) const {
-		//assumption: it exists
-		//-1 means it has been captured
-		//cout << "looking for " << p << endl;
-
-		bool isBlack = (p >> 11);
-		const _piece *map = ((isBlack) ? black_map : white_map);
-		signed char index = (&p - map);
-		//check if it's been deleted, return accordingly
-		if (map[index] == 0)
-			return -1;
-		return index;
-	}
-
+	string piecetype_to_string (_property type);
+	inline string location_to_string (_location sq)
+		{	return "" + (char)('a' + (sq & TRIPLET_MASK)) + (char)('1' + (sq >> FOUR_SH));	}
 	// ======================End of Functions======================
 }
+
 #endif

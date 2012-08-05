@@ -54,8 +54,95 @@ namespace myriad{
 		default: return "Invalid Type";
 		}
 	}
-	// XXX: (string) cast should convert to FEN String instead. Display should indicate side to move.
+
+	// Display should indicate side to move.
 	position::operator string() {
+		//First get the graphical representation, which is already
+		//pieces\npieces\n etc
+		string graphical = position::get_graphical();
+
+		string fen;
+
+		stringstream ss;
+		ss.str(graphical);
+
+		for (char i=0; i<7; ++i) {
+			string rank;
+			ss >> rank;
+			//* indicates an empty square. We have to replace *s with numbers
+			char first_empty_file = rank.find('*');
+			string empty_square_buffer;
+			for (char j = first_empty_file; j < rank.size(); ++j) {
+				if (rank[j] == '*') {
+					empty_square_buffer += '*';
+				}
+				else {
+
+					rank.replace(rank.find(empty_square_buffer),
+									rank.find(empty_square_buffer)
+										+ empty_square_buffer.size(),
+									empty_square_buffer);
+					j -= empty_square_buffer.size();
+					empty_square_buffer = "";
+				}
+			}
+			// In case file h is empty
+			if (empty_square_buffer.size() > 0) {
+				rank.replace(rank.find(empty_square_buffer),
+								rank.find(empty_square_buffer)
+									+empty_square_buffer.size(),
+								empty_square_buffer);
+			}
+
+			fen += rank;
+			if (i != 7) {
+				fen += '/';
+			}
+		}
+
+		fen += ' ';
+		//side to move
+		fen += is_black_to_move(details) ? 'b' : 'w';
+		fen += ' ';
+
+		//I'm not sure how to use get_castle_rights, so I'll just work with
+		//details directly for now
+		const unsigned char originalFenLength = fen.size();
+
+		if ( get_castle_right(details, WKS_CASTLE) ) {
+			fen += 'K';
+		}
+		if ( get_castle_right(details, WQS_CASTLE) ) {
+			fen += 'Q';
+		}
+		if ( get_castle_right(details, BKS_CASTLE) ) {
+			fen += 'k';
+		}
+		if ( get_castle_right(details, BQS_CASTLE) ) {
+			fen += 'q';
+		}
+		//No castling rights, so the FEN's length hasn't changed, so add hyphen
+		if (fen.size() == originalFenLength) {
+			fen += '-';
+		}
+		fen += ' ';
+
+		//Half move
+		ss.clear();
+		ss.str(string());
+		ss << ((details >> 1) & 64);
+		fen += ss.str();
+
+		//Fullmove
+		ss.clear();
+		ss.str(string());
+		ss << halfmove_clock;
+		fen += ss.str() + ' ';
+
+		return fen;
+	}
+
+	std::string position::get_graphical() {
 		char** board = new char*[8];
 		for(int i = 0; i < 8; ++i) {
 			board[i] = new char[8];

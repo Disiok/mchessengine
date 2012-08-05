@@ -107,7 +107,8 @@ void position::make_move(_move m) {
 vector <_move> position::move_gen() {
 	_property turn_col = is_black_to_move(details), opp_col = turn_col ^ 1;
 	_piece* turn_map = turn_col ? black_map : white_map;
-	vector <_move> to_return, threats = reachable_pieces(get_piece_location(turn_map[0]), turn_col);
+	vector <_move> to_return;
+	vector<_piece> threats = reachable_pieces(get_piece_location(turn_map[0]), turn_col);
 	int threats_size = threats.size();
 
 	/* Useful pawn constants */

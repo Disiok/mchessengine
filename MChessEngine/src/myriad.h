@@ -52,37 +52,11 @@ public:
 	operator string ();
 private:
 	void continuous_gen (_property type, _location start, vector<_move> &v, _property col, char difference);
-	_piece** create_guardian_map (_property col, _property opp_col);
-	void single_gen (_property type, _location start, vector<_move> &v, _property opp_col, char difference);
+	_piece* create_guardian_map (_property col, _property opp_col);		/* Returns the checking piece. */
 	void kill(_piece& p, _property map);
-};
-
-class round{
-public:
-	_zobrist *hash_value;
-	unsigned short *halfmove_clock;
-	_zdata *info;
-
-	round(int bitsize);			/* WARNING: do not create any round objects, even though this
-	 	 	 	 	 	 	 	 * constructor is public. */
-	_zdata get(_zobrist hash);
-	_zdata set(_zobrist hash, _property col, int score, unsigned short halfmove_clock, _move killer,
-			   bool exact, bool bound_type);
-	_zobrist initial_hash();
-	_zobrist xor_in(_zobrist prev, _piece p);
-	_zobrist xor_out(_zobrist prev, _piece p);
-	_zobrist xor_toggle_castle(_zobrist prev, _property modifier);
-	_zobrist xor_epsq(_zobrist prev, _location epsq);
-private:
-	/**
-	 * Note: this was termed hash_values in the previous .table package. However, this name
-	 * was misleading, since these are not the actual hash values. As a result, They've been
-	 * renamed "Z-values", short for Zobrist-values.
-	 */
-	_zobrist Z_values [836];
-	const int multiplers [] = {0, 2, 4, 6, 8, 10, 12, 14};	/* p, n, b, r, q, k, epsq */
-	const int CASTLING_OFFSET = 831;	// NB: first castling hash at index 832.
-	int get_index(_property p_type, _property col, _location loc);
+	void king_gen(_location start, _piece &king, vector <_move> &v, _property opp_col, char difference);
+	vector<_piece> reachable_pieces(_location sq, _property map);
+	void single_gen (_property type, _location start, vector<_move> &v, _property opp_col, char difference);
 };
 // ======================End of Classes======================
 // ======================Constants=====================
@@ -142,11 +116,7 @@ const char BLACK_PAWN_ATTACK[] = {DOWN_RIGHT, DOWN_LEFT};
 const _property start_position = 0xf00;		/* detail value at startposition */
 extern _piece zero_piece; 					/* WARNING: g++ will not allow this to be declared const,
  	 	 	 	 	 	 	 	 	 	 	 * but DO NOT CHANGE this value. */
-
-/* XPosition Table */
-const round *table;			//XXX initialize to heap properly
 // ======================End of Constants======================
-
 // ======================Functions======================
 /* _piece accessors and mutators */
 inline _location get_piece_location(_piece p){ return p & LOCATION_MASK; }

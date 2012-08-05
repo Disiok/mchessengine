@@ -9,8 +9,9 @@
  * Contains all the essential declarations for use in the Myriad engine.
  */
 
-#include "myriad.h";
+#include "myriad.h"
 
 namespace myriad{
 
+//int round::multiplers[8] = {0, 2, 4, 6, 8, 10, 12, 14};	/* p, n, b, r, q, k, epsq */
 }

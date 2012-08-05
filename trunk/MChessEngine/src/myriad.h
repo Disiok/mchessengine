@@ -48,8 +48,11 @@ public:
 	_piece& piece_search(_location square);					/* When search map is unknown */
 	_piece& piece_search(_location square, _property map);	/* WHITE for white, BLACK for black */
 	vector<_move> move_gen();
-	//a conversion to std::string, creates a graphical representation -> see note in utils.cpp
+
+	//creates a fen string
 	operator string ();
+	//creates a graphical representation
+	string get_graphical();
 private:
 	void continuous_gen (_property type, _location start, vector<_move> &v, _property col, char difference);
 	_piece* create_guardian_map (_property col, _property opp_col);		/* Returns the checking piece. */

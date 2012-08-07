@@ -117,13 +117,84 @@ vector <_move> position::move_gen() {
 	_location promotion_row = (opp_col * 0x70), start_row = 0x10 + 0x50 * turn_col, epsq = details >> EP_SH;
 
 	if(threats_size != 0) {
+		/* if king is currently in check */
 		_location c_loc = get_piece_location(white_map[0]);
 		/* Consider moving the king*/
 		for (int i = 0; i < 8; i++) king_gen(c_loc, turn_map[0], to_return, opp_col, RADIAL[i]);
 
 		if (threats_size >= 2) return to_return;	/* Only moving the king is possible on double check. */
+		else{
+			/*Add piece in between or kill threat*/
+			_piece threat = threats[0];
+			_property threat_type = get_piece_type(threat);
+			_location threat_loc = get_piece_location(threat);
+			_location next_loc = c_loc;
 
+			/*Generate moves to kill threat*/
+			vector <_piece> killer = reachable_pieces(threat_loc, opp_col);
+			for (int k = 0; k < killer.size(); k++){
+				_location start = get_piece_location(killer[k]);
+				_location end = threat_loc;
+				if ( get_piece_type(killer[k]) == PAWN && (end >>4) == turn_col? 7:0){
+					// kill while promoting
+					for (int j = 2; j <= 5; j++){
+							to_return.push_back(create_move(start, end, create_capture_mod(killer[k],threat, j)));
+					}
+				}
+				to_return.push_back(create_move(start, end, create_capture_mod(killer[k],threat)));
+			}
+			/*Blocking threat is possible*/
+			if (threat_type != PAWN && threat_type != KNIGHT){
+				char diff = getDifference(threat_loc, c_loc);
+				while (next_loc!= threat_loc){
+					next_loc += diff;
+					vector<_piece> saver = reachable_pieces(next_loc, opp_col);
+					for (int k = 0; k < saver.size(); k++){
+						_location start = get_piece_location(saver[k]);
+						_location end = next_loc;
+						if ( get_piece_type(saver[k]) == PAWN && (end >>4) == turn_col? 7:0){
+							// block while promoting
+							for (int j = 2; j <= 5; j++)
+								to_return.push_back(create_move(start, end, PROMOTE_OFFSET +j));
+						}
+						else if ( get_piece_type(saver[k]) == PAWN && abs(start - end) == 0x20){
+							// block while double advance
+							for (int j = 2; j <= 5; j++)
+								to_return.push_back(create_move(start, end, DOUBLE_ADVANCE));
+						}
+						else{
+							if (next_loc == threat_loc)
+								to_return.push_back(create_move(start, end, create_capture_mod(saver[k],threat)));
+							else
+								to_return.push_back(create_move(start, end));
+						}
+					}
+				}
+			}
+			/*Only killing the threat is plausible: Special en-passant killing is possible*/
+			else if(threat_type == PAWN && get_epsq(details) == (turn_col?0x10:-0x10) + threat_loc  ){
+				char diffs[] = {0x01, -0x01};
+				for (int l = 0; l < 2; l++){
+					if (get_piece_type(piece_search(threat_loc + diffs[l], turn_col)) == PAWN){
+						to_return.push_back(create_move(threat_loc + diffs[l], get_epsq(details) + (turn_col?-16:16), EN_PASSANT));
+					}
+				}
+			}
+			/*delete cases where guardian assailant is involved*/
+			_piece *guardian_map = create_guardian_map(turn_col, opp_col);
+			for (int n = 0 ; n < 8; n++){
+				_piece p = guardian_map[n];
+				if (get_piece_type(p) != zero_piece){
+					for (int j = 0; j < to_return.size(); j++) {
+						_location start = get_move_start(to_return[j]);
+						if (start == get_piece_location(p))
+							to_return.erase(to_return.begin()+j);
+					}
+				}
+			}
+		}
 	} else {
+		/*if the king is currently not in check */
 		_piece *guardian_map = create_guardian_map (turn_col, opp_col);
 		for(int current_index = 0; current_index < 16; current_index++) {
 			_piece current_piece = turn_map [current_index];
@@ -561,6 +632,24 @@ _piece* position::create_guardian_map (_property col, _property opp_col){
 		guardian_map[i + 8] = set ? attacker : zero_piece;
 	}
 	return guardian_map;
+}
+char position:: getDifference(_location loc, _location k_loc){
+	char d = 0, next_loc = k_loc;
+	char diff;
+	for (int i = 0 ; i < 8; i++){
+		diff = RADIAL[i];
+		next_loc = k_loc;
+		do {
+			next_loc += diff;
+			if (next_loc == loc) {
+				d = diff;
+				break;
+			}
+		} while ((next_loc & 0x88) == 0);
+		if (d != 0)
+			break;
+	}
+	return d;
 }
 inline void position::kill(_piece& p, _property victim_map) {
 	_piece* search_map = victim_map ? black_map : white_map;

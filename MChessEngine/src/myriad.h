@@ -15,6 +15,7 @@
 #include <vector>
 #include <sstream>
 #include <iostream>
+#include <cmath>
 #include <sstream>
 
 using namespace std;
@@ -63,6 +64,7 @@ private:
 	int get_last_index(_piece *map);
 	vector<_piece> reachable_pieces(_location sq, _property map);
 	void single_gen (_property type, _location start, vector<_move> &v, _property opp_col, char difference);
+	char getDifference(_location loc, _location k_loc);
 };
 // ======================End of Classes======================
 // ======================Constants=====================

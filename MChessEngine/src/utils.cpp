@@ -30,6 +30,7 @@ namespace myriad{
 		case WQS_CASTLE: return "0-0-0 (w)";
 		case BKS_CASTLE: return "0-0 (b)";
 		case BQS_CASTLE: return "0-0-0 (b)";
+		case DOUBLE_ADVANCE: return location_to_string(start) + "-" + location_to_string(end);
 		case EN_PASSANT: return location_to_string(start) + ":" + location_to_string(end) + " e.p.";
 		default:
 			if (modifier < 10){
@@ -72,7 +73,7 @@ namespace myriad{
 			//* indicates an empty square. We have to replace *s with numbers
 			char first_empty_file = rank.find('*');
 			string empty_square_buffer;
-			for (char j = first_empty_file; j < rank.size(); ++j) {
+			for (_location j = first_empty_file; j < rank.size(); ++j) {
 				if (rank[j] == '*') {
 					empty_square_buffer += '*';
 				}

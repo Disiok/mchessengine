@@ -53,7 +53,7 @@ void position::make_move(_move m) {
 
 	switch (modifier){
 	case 0:
-		moving ^= end ^ start;
+		moving = move_piece(moving, start, end);
 		if ((type = get_piece_type(moving)) == ROOK){
 			switch (start){
 			case 0x00: details = revoke_castle_right(details, WQS_CASTLE); break;
@@ -270,6 +270,7 @@ vector <_move> position::move_gen() {
 						/* in case of direct adv., sq & 0x88 always == 0, provided only legal positions */
 						_location row = c_loc & 0x70;
 						if (row == start_row){
+							to_return.push_back(create_move(c_loc, next_loc));
 							next_loc += pawn_direction;
 							if (piece_search(next_loc) == zero_piece)
 								to_return.push_back(create_move(c_loc, next_loc, DOUBLE_ADVANCE));
@@ -330,8 +331,8 @@ vector <_move> position::move_gen() {
 					break;
 				}
 			}
-			delete[] guardian_map;
 		}
+		delete [] guardian_map;
 	}
 	return to_return;
 }
@@ -396,6 +397,43 @@ bool position::is_in_check() {
 		if (get_piece_type(obstruct) == KNIGHT) return true;
 	}
 	return zero_piece;
+}
+void position::unmake_move (_move previous_move, _property prev_details){
+	details = prev_details;
+	_property modifier = get_move_modifier (previous_move), turn_col = details & 1, opp_col = turn_col ^ 1,
+			  victim_type;
+	_location start = get_move_start (previous_move), end = get_move_end(previous_move);
+	_piece* turn_map = turn_col ? black_map : white_map;
+	_piece* opp_map = turn_col ? white_map : black_map;
+	_piece& captured = zero_piece, &moved = piece_search(end, turn_col);
+
+	switch (modifier){
+	case 0:	moved = move_piece(moved, end, start); break;
+	case WKS_CASTLE: case BKS_CASTLE:
+		moved += 0x02;
+		turn_map[0] -= 0x02;
+		break;
+	case WQS_CASTLE: case BQS_CASTLE:
+		moved -= 0x03;
+		turn_map[0] += 0x02;
+		break;
+	case EN_PASSANT:
+		captured = opp_map[get_last_index(opp_map) + 1];
+		captured = create_piece(end, PAWN, opp_col);
+		moved = piece_search(end + (turn_col ? UP : DOWN), turn_col);
+		moved = create_piece(start, PAWN, turn_col);
+		break;
+	default:
+		if (modifier < 10) moved = create_piece (start, PAWN, turn_col);
+		else {
+			victim_type = (modifier >> 3) & TRIPLET_MASK;
+			captured = opp_map[get_last_index(opp_map) + 1];
+			captured = create_piece(end, victim_type, opp_col);
+			if ((modifier >> 6) == 0) moved = move_piece (moved, end, start);
+			else moved = create_piece(start, PAWN, turn_col);
+		}
+		break;
+	}
 }
 // Implementations of helper methods
 void position::continuous_gen(_property type, _location start, vector<_move> &v, _property col, char diff){
@@ -526,12 +564,12 @@ _piece* position::create_guardian_map (_property col, _property opp_col){
 }
 inline void position::kill(_piece& p, _property victim_map) {
 	_piece* search_map = victim_map ? black_map : white_map;
-	for (int i = 15; i > 0; i--){	// king never subject to kill
-		if (search_map [i] != 0){
-			p = search_map[i];
-			search_map[i] = zero_piece;
-			return;
-		}
-	}
+	_piece& to_swap = search_map[get_last_index(search_map)];
+	p = to_swap;
+	to_swap = zero_piece;
+}
+inline int position::get_last_index (_piece* map){
+	for (int i = 15; i > 0; i--) if (map[i] != zero_piece) return i;
+	return -1;
 }
 }

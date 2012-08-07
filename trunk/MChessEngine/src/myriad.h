@@ -15,6 +15,7 @@
 #include <vector>
 #include <sstream>
 #include <iostream>
+#include <sstream>
 
 using namespace std;
 
@@ -48,6 +49,7 @@ public:
 	_piece& piece_search(_location square);					/* When search map is unknown */
 	_piece& piece_search(_location square, _property map);	/* WHITE for white, BLACK for black */
 	vector<_move> move_gen();
+	void unmake_move (_move previous_move, _property prev_details);
 
 	//creates a fen string
 	operator string ();
@@ -58,6 +60,7 @@ private:
 	_piece* create_guardian_map (_property col, _property opp_col);		/* Returns the checking piece. */
 	void kill(_piece& p, _property map);
 	void king_gen(_location start, _piece &king, vector <_move> &v, _property opp_col, char difference);
+	int get_last_index(_piece *map);
 	vector<_piece> reachable_pieces(_location sq, _property map);
 	void single_gen (_property type, _location start, vector<_move> &v, _property opp_col, char difference);
 };
@@ -143,14 +146,14 @@ inline _property create_capture_mod (_property attacker, _property victim, _prop
 
 /* detail _property accessors and mutators */
 inline bool is_black_to_move (_property detail) {	return detail & 1;	}
-inline _property get_epsq (_property detail, _property modifier) {	return detail >> EP_SH; }
+inline _property get_epsq (_property detail) {	return detail >> EP_SH; }
 inline _property clear_epsq (_property detail) {	return detail & 0xfff;	}
 inline _property set_epsq (_property detail, _location epsq) /* assuming clear_epsq has been called */
 	{	return detail + (epsq << EP_SH);	}
-inline _property increase_ply_count (_property detail) {	return (detail + 2) ^ 1;	}
-inline _property reset_ply_count (_property detail) {	return detail & (!0xfe);	}
+inline _property increase_ply_count (_property detail) {	return (detail ^ 1) + 2;	}
+inline _property reset_ply_count (_property detail) {	return detail & (~0xfe);	}
 inline _property revoke_castle_right (_property detail, _property modifier)
-	{	return detail & (!(1 << (modifier + 7)));	}
+	{	return detail & (~(1 << (modifier + 7)));	}
 inline _property get_castle_right (_property detail, _property modifier)
 	{	return (detail >> (modifier + 7)) & 1; }
 
@@ -158,8 +161,11 @@ inline _property get_castle_right (_property detail, _property modifier)
 string piece_to_string (_piece p);
 string move_to_string (_move m, position &p);
 string piecetype_to_string (_property type);
-inline string location_to_string (_location sq)
-	{	return "" + (char)('a' + (sq & TRIPLET_MASK)) + (char)('1' + (sq >> FOUR_SH));	}
+inline string location_to_string (_location sq){
+	stringstream ss;
+	ss << (1 + (sq >> FOUR_SH));
+	return string() + (char)('a' + (sq & TRIPLET_MASK)) + ss.str();
+}
 // ======================End of Functions======================
 }
 

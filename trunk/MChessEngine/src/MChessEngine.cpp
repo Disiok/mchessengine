@@ -49,3 +49,28 @@ int main() {
 
 	return 0;
 }
+
+long Perft(int depth, position& p){
+	int nodes = 0;
+	int n_moves;
+	_property details = p.details;
+	if (depth == 0) return 1;
+	vector <_move> moves = p.move_gen();
+	n_moves = moves.size();
+
+	for (int i = 0; i < n_moves; i++){
+		p.make_move(moves[i]);
+		nodes += Perft(depth - 1, p);
+		p.unmake_move(moves[i], details);
+	}
+	return nodes;
+}
+void Divide (int depth, position& p){
+	vector <_move> moves = p.move_gen();
+	int n_moves = moves.size();
+	for (int i = 0; i < n_moves; i++){
+			p.make_move(moves[i]);
+			cout<<Perft(depth , p);
+			p.unmake_move(moves[i], p.details);
+		}
+}

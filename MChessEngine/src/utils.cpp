@@ -5,9 +5,10 @@
  */
 #include "myriad.h"
 
-namespace myriad{
+namespace myriad {
 	string piece_to_string(_piece p) {
 		if(p == zero_piece) return "Null";
+
 		_location sq = get_piece_location(p);
 		_property color = get_piece_color(p);
 		_property type = get_piece_type(p);
@@ -25,35 +26,173 @@ namespace myriad{
 		string p_type = piecetype_to_string(get_piece_type(p.piece_search(start)));
 
 		switch(modifier) {
-		case 0: return p_type + location_to_string(start) + "-" + location_to_string(end);
-		case WKS_CASTLE: return "0-0 (w)";
-		case WQS_CASTLE: return "0-0-0 (w)";
-		case BKS_CASTLE: return "0-0 (b)";
-		case BQS_CASTLE: return "0-0-0 (b)";
-		case DOUBLE_ADVANCE: return location_to_string(start) + "-" + location_to_string(end);
-		case EN_PASSANT: return location_to_string(start) + ":" + location_to_string(end) + " e.p.";
+		case 0:
+			return p_type + location_to_string(start) + "-" + location_to_string(end);
+		case WKS_CASTLE:
+			return "0-0 (w)";
+		case WQS_CASTLE:
+			return "0-0-0 (w)";
+		case BKS_CASTLE:
+			return "0-0 (b)";
+		case BQS_CASTLE:
+			return "0-0-0 (b)";
+		case EN_PASSANT:
+			return location_to_string(start) + ":" + location_to_string(end) + " e.p.";
+		case DOUBLE_ADVANCE:
+			return location_to_string(start) + "-" + location_to_string(end);
 		default:
-			if (modifier < 10){
-				return location_to_string (start) + "-" + location_to_string (end) + "=" +
-					   piecetype_to_string(modifier - PROMOTE_OFFSET);
+
+			if(modifier < 10) {
+				return location_to_string(start) + "-" + location_to_string(end) + "=" +
+				       piecetype_to_string(modifier - PROMOTE_OFFSET);
 			} else {
 				string s = p_type + location_to_string(start) + ":" + location_to_string(end);
 				_property promote = modifier >> 6;
-				if (promote != 0) s += "=" + piecetype_to_string (promote);
+
+				if(promote != 0) s += "=" + piecetype_to_string(promote);
 			}
+
 			return p_type + location_to_string(start) + ":" + location_to_string(end);
 		}
 	}
-	string piecetype_to_string (_property type){
-		switch (type){
-		case ROOK: return "R";
-		case KNIGHT: return "N";
-		case BISHOP: return "B";
-		case QUEEN: return "Q";
-		case KING: return "K";
-		case PAWN: return "";
-		default: return "Invalid Type";
+	string piecetype_to_string(_property type) {
+		switch(type) {
+		case ROOK:
+			return "R";
+		case KNIGHT:
+			return "N";
+		case BISHOP:
+			return "B";
+		case QUEEN:
+			return "Q";
+		case KING:
+			return "K";
+		case PAWN:
+			return "";
+		default:
+			return "Invalid Type";
 		}
+	}
+
+	position::position(string fen) : details(0) {
+
+		for(unsigned char i = 0; i < 16; ++i) {
+			black_map[i] = white_map[i] = 0;
+		}
+
+		stringstream ss;
+		ss.str(fen);
+
+		string row;
+
+		// Where to next insert - 1
+		int lastAccessedMapIndices[2] = {1, 1};
+
+		//ranks 8-2 have a / as a delimiter
+		for(char rank = 7; rank >= 0; --rank) {
+			//assuming the delimiter is discarded from the stream
+			if(rank > 0) {
+				getline(ss, row, '/');
+			}
+			else {
+				ss >> row;
+			}
+
+			cout << endl << row << endl;
+
+			//Go through space numbers and chess pieces one by one
+			for(unsigned char x = 0, file = 0; x < row.size(); ++x, ++file) {
+				//Empty spaces, increment the file by the number of spaces
+				if(row[x] >= '1' && row[x] <= '8') {
+					stringstream ss2;
+					ss2 << row[x];
+					short numberOfSpaces;
+					ss2 >> numberOfSpaces;
+					file += numberOfSpaces - 1;
+					continue;
+				}
+
+				const bool is_black = (row[x] >= 'b' && row[x] <= 'r');
+
+				_piece* map = is_black ? black_map : white_map;
+
+				//relies on the fact that
+				//+32 gets lowercase
+				if(row[x] == 'K' + ((is_black) * 32)) {
+					map[0] = create_piece((rank << 4) + file, KING, is_black);
+					continue;
+				}
+				else if(row[x] ==  'Q' + ((is_black) * 32)) {
+					map[lastAccessedMapIndices[is_black]]
+					= create_piece((rank << 4) + file, QUEEN, is_black);
+				}
+				else if(row[x] ==  'B' + ((is_black) * 32)) {
+					map[lastAccessedMapIndices[is_black]]
+					= create_piece((rank << 4) + file, BISHOP, is_black);
+				}
+				else if (row[x] == 'N' + ((is_black) * 32)) {
+					map[lastAccessedMapIndices[is_black]]
+					= create_piece((rank << 4) + file, KNIGHT, is_black);
+				}
+				else if(row[x] == 'R' + ((is_black) * 32)) {
+					map[lastAccessedMapIndices[is_black]]
+					= create_piece((rank << 4) + file, ROOK, is_black);
+				}
+				else if(row[x] ==  'P' + ((is_black) * 32)) {
+					map[lastAccessedMapIndices[is_black]]
+					= create_piece((rank << 4) + file, PAWN, is_black);
+				}
+
+				++lastAccessedMapIndices[is_black];
+			}
+
+		}
+
+		//stm
+		char stm;
+		ss >> stm;
+		//details &= (~((_property)(1)));
+		details ^= (stm == 'b');
+
+		string castling_rights;
+		ss >> castling_rights;
+
+		//details &= (~((_property)(15 << 8)));
+		//if some player does have castling rights
+		if(castling_rights[0] != '-') {
+			for(unsigned char i = 0; i < castling_rights.size(); ++i) {
+				switch(castling_rights[i]) {
+				case 'K':
+					details ^= ((1 << 8));
+					break;
+				case 'Q':
+					details ^= ((1 << 9));
+					break;
+				case 'k':
+					details ^= ((1 << 10));
+					break;
+				case 'q':
+					details ^= ((1 << 11));
+					break;
+				}
+			}
+		}
+
+		string epsq;
+		ss >> epsq;
+		//details &= (~((_property)(255 << 11)));
+		if (epsq[0] != '-') {
+			details ^= string_to_location(epsq) << EP_SH;
+		}
+
+		//halfmove clock
+		unsigned short plycount;
+		ss >> plycount;
+		//details &= (~((_property)(127 << 1)));
+		details ^= plycount << 1;
+
+		//fullmove clock
+		ss >> halfmove_clock;
 	}
 
 	// Display should indicate side to move.
@@ -67,36 +206,50 @@ namespace myriad{
 		stringstream ss;
 		ss.str(graphical);
 
-		for (char i=0; i<7; ++i) {
+		for(char i = 0; i < 8; ++i) {
 			string rank;
 			ss >> rank;
-			//* indicates an empty square. We have to replace *s with numbers
-			char first_empty_file = rank.find('*');
+			//. indicates an empty square. We have to replace .s with numbers
+			char first_empty_file = rank.find('.');
 			string empty_square_buffer;
-			for (_location j = first_empty_file; j < rank.size(); ++j) {
-				if (rank[j] == '*') {
-					empty_square_buffer += '*';
-				}
-				else {
 
-					rank.replace(rank.find(empty_square_buffer),
-									rank.find(empty_square_buffer)
-										+ empty_square_buffer.size(),
-									empty_square_buffer);
-					j -= empty_square_buffer.size();
-					empty_square_buffer = "";
+			//for int to string conversion
+			stringstream ss2;
+
+			//If there are indeed empty spots in the rank
+			if(first_empty_file != string::npos) {
+				for(unsigned char j = first_empty_file; j < rank.size(); ++j) {
+					if(rank[j] == '.') {
+						empty_square_buffer += '.';
+					}
+					else {
+						ss2 << empty_square_buffer.size();
+
+						rank.replace(rank.find(empty_square_buffer),
+						             empty_square_buffer.size(),
+						             ss2.str());
+						if ((j = rank.find('.') - 1) == string::npos) {
+							break;
+						}
+						empty_square_buffer = "";
+						ss2.str("");
+					}
 				}
 			}
+
 			// In case file h is empty
-			if (empty_square_buffer.size() > 0) {
+			if(empty_square_buffer.size() > 0) {
+				ss2.clear();
+				ss2.str("");
+				ss2 << empty_square_buffer.size();
 				rank.replace(rank.find(empty_square_buffer),
-								rank.find(empty_square_buffer)
-									+empty_square_buffer.size(),
-								empty_square_buffer);
+				             empty_square_buffer.size(),
+				             ss2.str());
 			}
 
 			fen += rank;
-			if (i != 7) {
+
+			if(i != 7) {
 				fen += '/';
 			}
 		}
@@ -106,85 +259,116 @@ namespace myriad{
 		fen += is_black_to_move(details) ? 'b' : 'w';
 		fen += ' ';
 
-		//I'm not sure how to use get_castle_rights, so I'll just work with
-		//details directly for now
 		const unsigned char originalFenLength = fen.size();
 
-		if ( get_castle_right(details, WKS_CASTLE) ) {
+		if(get_castle_right(details, WKS_CASTLE)) {
 			fen += 'K';
 		}
-		if ( get_castle_right(details, WQS_CASTLE) ) {
+
+		if(get_castle_right(details, WQS_CASTLE)) {
 			fen += 'Q';
 		}
-		if ( get_castle_right(details, BKS_CASTLE) ) {
+
+		if(get_castle_right(details, BKS_CASTLE)) {
 			fen += 'k';
 		}
-		if ( get_castle_right(details, BQS_CASTLE) ) {
+
+		if(get_castle_right(details, BQS_CASTLE)) {
 			fen += 'q';
 		}
+
 		//No castling rights, so the FEN's length hasn't changed, so add hyphen
-		if (fen.size() == originalFenLength) {
+		if(fen.size() == originalFenLength) {
 			fen += '-';
 		}
+
+		fen += ' ';
+		//en passant
+		_location epsq;
+
+		if((epsq = get_epsq(details))) {
+			fen += location_to_string(epsq);
+		}
+		else {
+			fen += '-';
+		}
+
 		fen += ' ';
 
 		//Half move
 		ss.clear();
 		ss.str(string());
-		ss << ((details >> 1) & 64);
-		fen += ss.str();
+		ss << ((details >> 1) & 127);
+		fen += ss.str() + ' ';
 
 		//Fullmove
 		ss.clear();
 		ss.str(string());
 		ss << halfmove_clock;
-		fen += ss.str() + ' ';
+		fen += ss.str();
 
 		return fen;
 	}
 
 	std::string position::get_graphical() {
 		char** board = new char*[8];
+
 		for(int i = 0; i < 8; ++i) {
 			board[i] = new char[8];
+
 			for(int j = 0; j < 8; ++j) {
 				board[i][j] = '.';
 			}
 		}
+
 		stringstream ss;
+
 		//plot white pieces
 		for(int i = 0; i < 16; ++i) {
 			_piece p = white_map[i];
+
 			if(p == 0) break;
+
 			int row = (p & 255) >> 4;
 			int column = (p & 15);
 			string typeString = piecetype_to_string((p >> 8) & 7);
+
 			if(typeString == "") board[row][column] = 'P';
 			else board[row][column] =  typeString.c_str()[0];
 		}
+
 		ss.str("");
 		ss.clear();
+
 		//black pieces
 		for(int i = 0; i < 16; ++i) {
 			_piece p = black_map[i];
+
 			if(p == 0) break;
+
 			int row = (p & 255) >> 4;
 			int column = (p & 15);
 			ss << ((p>>8) & 7);
 			string typeString = piecetype_to_string((p >> 8) & 7);
+
 			//make black lowercase
 			if(typeString == "") board[row][column] = 'p';
-			else board[row][column] =  typeString.c_str()[0] + 32;
+			else board[row][column]
+				= typeString.c_str()[0] + 32;
 		}
+
 		//time ta draw
 		string result;
+
 		for(int i = 7; i >= 0; --i) {
 			for(int j = 0; j < 8; ++j) {
 				result += board[i][j];
 			}
+
 			result += '\n';
 			delete[] board[i];
 		}
+
 		delete[] board;
 		return result;
 	}

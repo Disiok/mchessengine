@@ -403,7 +403,7 @@ vector <_move> position::move_gen() {
 				}
 			}
 		}
-		delete [] guardian_map;
+		delete[] guardian_map;
 	}
 	return to_return;
 }

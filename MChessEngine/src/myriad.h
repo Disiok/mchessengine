@@ -15,8 +15,8 @@
 #include <vector>
 #include <sstream>
 #include <iostream>
-#include <cmath>
-#include <sstream>
+#include <iomanip>
+#include <cassert>
 
 using namespace std;
 
@@ -44,6 +44,7 @@ public:
 	unsigned short halfmove_clock;
 
 	position();
+	position(string fen);
 
 	bool is_in_check ();
 	void make_move(_move m);
@@ -163,10 +164,15 @@ inline _property get_castle_right (_property detail, _property modifier)
 string piece_to_string (_piece p);
 string move_to_string (_move m, position &p);
 string piecetype_to_string (_property type);
-inline string location_to_string (_location sq){
-	stringstream ss;
-	ss << (1 + (sq >> FOUR_SH));
-	return string() + (char)('a' + (sq & TRIPLET_MASK)) + ss.str();
+inline string location_to_string (_location sq)
+	{
+		stringstream ss;
+		ss << (1 + (sq >> FOUR_SH));
+		return string() + (char)('a' + (sq & TRIPLET_MASK)) + ss.str();
+	}
+inline _location string_to_location(string location) {
+
+	return ( ((location[0] - 'a') << 4) + (location[2] - '1'));
 }
 // ======================End of Functions======================
 }

@@ -47,22 +47,12 @@ int main() {
 		} else cout << "<< Input not recognized. Input 'help' for the help menu.";
 	} while (!input.compare("exit"));
 
+	position p2(string("rnbqkbnr/pp3ppp/8/2p1p3/3pP3/3P2P1/PPP1NPBP/R1BQK1NR b KQkq - 1 6"));
+	cout << endl << (string)p2 << endl;
+
+	//promotion to queen
+	//p.make_move();
 	return 0;
-}
-
-long Perft(int depth, position& p){
-	int nodes = 0;
-	int n_moves;
-	_property details = p.details;
-	if (depth == 0) return 1;
-	vector <_move> moves = p.move_gen();
-	n_moves = moves.size();
-
-	for (int i = 0; i < n_moves; i++){
-		p.make_move(moves[i]);
-		nodes += Perft(depth - 1, p);
-		p.unmake_move(moves[i], details);
-	}
 	return nodes;
 }
 void Divide (int depth, position& p){

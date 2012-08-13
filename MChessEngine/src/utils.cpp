@@ -26,68 +26,45 @@ namespace myriad {
 		string p_type = piecetype_to_string(get_piece_type(p.piece_search(start)));
 
 		switch(modifier) {
-		case 0:
-			return p_type + location_to_string(start) + "-" + location_to_string(end);
-		case WKS_CASTLE:
-			return "0-0 (w)";
-		case WQS_CASTLE:
-			return "0-0-0 (w)";
-		case BKS_CASTLE:
-			return "0-0 (b)";
-		case BQS_CASTLE:
-			return "0-0-0 (b)";
-		case EN_PASSANT:
-			return location_to_string(start) + ":" + location_to_string(end) + " e.p.";
-		case DOUBLE_ADVANCE:
-			return location_to_string(start) + "-" + location_to_string(end);
+		case 0: return p_type + location_to_string(start) + "-" + location_to_string(end);
+		case WKS_CASTLE: return "0-0 (w)";
+		case WQS_CASTLE: return "0-0-0 (w)";
+		case BKS_CASTLE: return "0-0 (b)";
+		case BQS_CASTLE: return "0-0-0 (b)";
+		case EN_PASSANT: return location_to_string(start) + ":" + location_to_string(end) + " e.p.";
+		case DOUBLE_ADVANCE: return location_to_string(start) + "-" + location_to_string(end);
 		default:
-
 			if(modifier < 10) {
 				return location_to_string(start) + "-" + location_to_string(end) + "=" +
 				       piecetype_to_string(modifier - PROMOTE_OFFSET);
 			} else {
 				string s = p_type + location_to_string(start) + ":" + location_to_string(end);
 				_property promote = modifier >> 6;
-
 				if(promote != 0) s += "=" + piecetype_to_string(promote);
 			}
-
 			return p_type + location_to_string(start) + ":" + location_to_string(end);
 		}
 	}
 	string piecetype_to_string(_property type) {
 		switch(type) {
-		case ROOK:
-			return "R";
-		case KNIGHT:
-			return "N";
-		case BISHOP:
-			return "B";
-		case QUEEN:
-			return "Q";
-		case KING:
-			return "K";
-		case PAWN:
-			return "";
-		default:
-			return "Invalid Type";
+		case ROOK: return "R";
+		case KNIGHT: return "N";
+		case BISHOP: return "B";
+		case QUEEN: return "Q";
+		case KING: return "K";
+		case PAWN: return "";
 		}
+		return "Invalid Type";
 	}
-
-	position::position(string fen) : details(0) {
-
+	position::position(string fen) : details(0), halfmove_clock(0){
 		for(unsigned char i = 0; i < 16; ++i) {
 			black_map[i] = white_map[i] = 0;
 		}
-
 		stringstream ss;
 		ss.str(fen);
-
 		string row;
-
 		// Where to next insert - 1
 		int lastAccessedMapIndices[2] = {1, 1};
-
 		//ranks 8-2 have a / as a delimiter
 		for(char rank = 7; rank >= 0; --rank) {
 			//assuming the delimiter is discarded from the stream

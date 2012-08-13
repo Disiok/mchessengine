@@ -40,7 +40,6 @@ public:
 	_piece black_map[16];
 	_property details;		/* LSB->MSB, 1 bit for stm, 7 bits for plycount, 4 bits for cstl. rights.,
 							   8 bits for position of pawn capturable by en passant */
-	_zobrist zobrist;		// TODO: implement this!
 	unsigned short halfmove_clock;
 
 	position();
@@ -60,7 +59,7 @@ public:
 private:
 	void continuous_gen (_property type, _location start, vector<_move> &v, _property col, char difference);
 	_piece* create_guardian_map (_property col, _property opp_col);		/* Returns the checking piece. */
-	void kill(_piece& p, _property map);
+	void kill(_piece& victim, _property map);
 	void king_gen(_location start, _piece &king, vector <_move> &v, _property opp_col, char difference);
 	int get_last_index(_piece *map);
 	vector<_piece> reachable_pieces(_location sq, _property map);
@@ -142,10 +141,10 @@ inline _property get_move_modifier (_move m) { return m >> SIXTEEN_SH; }
 inline _move create_move (_location start, _location end, _property modifier = 0)
 	{	return (modifier << SIXTEEN_SH) + (end << EIGHT_SH) + start; }
 /* Create modifiers for capture moves. Bitstring formatted: (MSB-> LSB) promotion piece type,
- * victim piece type, attacker piece type, 3 bits each.
+ * victim piece type, attacker piece type, 4 bits each. (NB: 4 bits now)
  * Organized this way so direct comparison i.e. _move a > _move b is possible in move-ordering */
 inline _property create_capture_mod (_property attacker, _property victim, _property promote = 0)
-	{	return (promote << 6) + (victim << 3) + (attacker); }
+	{	return (promote << EIGHT_SH) + (victim << FOUR_SH) + (attacker); }
 
 /* detail _property accessors and mutators */
 inline bool is_black_to_move (_property detail) {	return detail & 1;	}

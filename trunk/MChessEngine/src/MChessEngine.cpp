@@ -9,6 +9,7 @@
 #include <iostream>
 #include <ctime>
 #include "myriad.h"
+#include<set>
 
 using namespace myriad;
 using namespace std;
@@ -113,7 +114,25 @@ void Perft (int depth, bool serial, bool debug){
 	}
 }
 long Perft(int depth){
-	if (depth == 0) return 1;
+	static long highestDepthRunningTotal = 0;
+	//this will contain pairs of position and depth
+	//if the position at said depth has been checked, no need to check again
+	/*static set<std::pair<position, int> > checkedPositions;
+
+	if ((checkedPositions.insert(
+			std::pair<position, int>(perft_position, depth))).second
+			== false) {
+		return 0;
+	}*/
+
+	if (depth == 0) {
+		//returns pair<set::iterator, bool> where bool is whether insertion
+		//was successful
+		//it should be false if the element already exists (it shouldn't)
+		return 1;
+	}
+
+
 	int nodes = 0, n_moves;
 	_property details = perft_position.details;
 	vector <_move> moves = perft_position.move_gen();
@@ -121,6 +140,14 @@ long Perft(int depth){
 	for (int i = 0; i < n_moves; i++){
 		perft_position.make_move(moves[i]);
 		nodes += Perft(depth - 1);
+
+		if (depth == 4) {
+			highestDepthRunningTotal = nodes;
+		}
+
+		//cout << "depth: " << depth << " / nodes: " << nodes << endl
+		//<< "running total at highest depth: " << highestDepthRunningTotal << endl;
+
 		perft_position.unmake_move(moves[i], details);
 	}
 	return nodes;

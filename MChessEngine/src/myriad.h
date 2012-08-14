@@ -56,6 +56,10 @@ public:
 	operator string ();
 	//creates a graphical representation
 	string get_graphical();
+
+	bool operator<(const position& rhs) const
+			{ return halfmove_clock < rhs.halfmove_clock; };
+
 private:
 	void continuous_gen (_property type, _location start, vector<_move> &v, _property col, char difference);
 	_piece* create_guardian_map (_property col, _property opp_col);		/* Returns the checking piece. */

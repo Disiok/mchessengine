@@ -19,6 +19,9 @@ position perft_position;
 void Perft(int depth, bool serial, bool debug);
 long Perft(int depth);
 
+set<std::pair<position, int> > checkedPositions;
+
+
 int main() {
 	cout << "Welcome to Myriad Standalone Utility" << endl;
 	cout << "~~Myriad (c) Team Spark~~" << endl;
@@ -59,6 +62,8 @@ int main() {
 			Perft(depth, serial, debug);
 			cout << "----------------Perf. Test End----------------" << endl;
 			cout << ">> ";
+
+
 		} else if (!command_name.compare("make_move")){
 			getline(ss, arguments, ' ');
 			_move move;
@@ -112,23 +117,31 @@ void Perft (int depth, bool serial, bool debug){
 		double diff = difftime(start, end);
 		cout << "   " << depth << "\t" << nodes << "\t" << diff << "\t" << nodes / diff << endl;
 	}
+
+	checkedPositions.erase(checkedPositions.begin(), checkedPositions.end());
 }
 long Perft(int depth){
-	static long highestDepthRunningTotal = 0;
-	//this will contain pairs of position and depth
-	//if the position at said depth has been checked, no need to check again
-	/*static set<std::pair<position, int> > checkedPositions;
 
-	if ((checkedPositions.insert(
+	//returns pair of iterators where the first one leads to the first element
+	//not greater than the argument
+	//do not continue if a search at like or higher depth has been done or started
+	if ( (*checkedPositions.equal_range(
+					pair<position, int>(perft_position, depth)
+			).first).first == perft_position) {
+		return 0;
+	}
+	//insert returns a pair of iterator and bool, the bool which indicates
+	//the success of the insertion
+	//do not continue if this search at this depth has been done
+	/*if ((checkedPositions.insert(
 			std::pair<position, int>(perft_position, depth))).second
 			== false) {
 		return 0;
 	}*/
+	checkedPositions.insert(pair<position, int>(perft_position, depth));
 
 	if (depth == 0) {
-		//returns pair<set::iterator, bool> where bool is whether insertion
-		//was successful
-		//it should be false if the element already exists (it shouldn't)
+
 		return 1;
 	}
 
@@ -141,12 +154,7 @@ long Perft(int depth){
 		perft_position.make_move(moves[i]);
 		nodes += Perft(depth - 1);
 
-		if (depth == 4) {
-			highestDepthRunningTotal = nodes;
-		}
-
-		//cout << "depth: " << depth << " / nodes: " << nodes << endl
-		//<< "running total at highest depth: " << highestDepthRunningTotal << endl;
+		//cout << "depth: " << depth << " / nodes: " << nodes << endl;
 
 		perft_position.unmake_move(moves[i], details);
 	}

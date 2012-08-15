@@ -189,10 +189,12 @@ namespace myriad {
 
 					if(diff == 0x7f) {
 						cout << "Uh-oh! A non-knight non-pawn threat at 0x"
-						<< hex << setfill('0')  << setw(2) << (unsigned short) threat_loc
+						<< hex << setfill('0')  << setw(2)
+						<< (unsigned short) threat_loc
 						<< "was actually \
 						not in line with the piece at 0x" //white king?
-						<< hex << setfill('0') << setw(2) << (unsigned short) c_loc << endl;
+						<< hex << setfill('0') << setw(2)
+						<< (unsigned short) c_loc << dec << endl;
 					}
 					else {
 						_location start;
@@ -573,36 +575,39 @@ namespace myriad {
 
 		return moves;
 	}
-	_piece& position::piece_search(_location square, _property map) {
-		_piece* search_map = (map == WHITE ? white_map : black_map);   // search one map only
+	_piece& position::piece_search(_location square, _property map) const {
+		const _piece* search_map = (map == WHITE ? white_map : black_map);   // search one map only
 
 		for(int i = 0; i < 16; i++) {
-			if(get_piece_location(search_map[i]) == square) return search_map[i];
+			if(get_piece_location(search_map[i]) == square)
+				return const_cast<_piece&>(search_map[i]);
 
 			if(search_map[i] == zero_piece) return zero_piece;
 		}
 
 		return zero_piece;
 	}
-	_piece& position::piece_search(_location square) {
+	_piece& position::piece_search(_location square) const {
 		// search white's then black's map
 		for(int i = 0; i < 16; i++) {
-			if(get_piece_location(white_map[i]) == square) return white_map [i];
+			if(get_piece_location(white_map[i]) == square)
+				return const_cast<_piece&>(white_map [i]);
 
 			if(white_map[i] == zero_piece) break;
 		}
 
 		for(int i = 0; i < 16; i++) {
-			if(get_piece_location(black_map[i]) == square) return black_map [i];
+			if(get_piece_location(black_map[i]) == square)
+				return const_cast<_piece&>(black_map [i]);
 
 			if(black_map[i] == zero_piece) break;
 		}
 
 		return zero_piece;
 	}
-	bool position::is_in_check() {
+	bool position::is_in_check() const {
 		bool turn_col = is_black_to_move(details), opp_col = !turn_col, melee;
-		_piece* turn_map = turn_col ? black_map : white_map;
+		const _piece* turn_map = turn_col ? black_map : white_map;
 		_piece obstruct;
 		_property attacker_type;
 		_location king = get_piece_location(turn_map[0]), current = king;

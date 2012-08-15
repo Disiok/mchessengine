@@ -17,6 +17,7 @@
 #include <iostream>
 #include <iomanip>
 #include <cassert>
+#include <algorithm>
 
 using namespace std;
 
@@ -45,10 +46,10 @@ public:
 	position();
 	position(string fen);
 
-	bool is_in_check ();
+	bool is_in_check () const;
 	void make_move(_move m);
-	_piece& piece_search(_location square);					/* When search map is unknown */
-	_piece& piece_search(_location square, _property map);	/* WHITE for white, BLACK for black */
+	_piece& piece_search(_location square) const;				/* When search map is unknown */
+	_piece& piece_search(_location square, _property map) const;	/* WHITE for white, BLACK for black */
 	vector<_move> move_gen();
 	void unmake_move (_move previous_move, _property prev_details);
 
@@ -59,6 +60,15 @@ public:
 
 	bool operator<(const position& rhs) const
 			{ return halfmove_clock < rhs.halfmove_clock; };
+	bool operator==(const position& rhs) const
+	{
+		return equal(black_map, black_map + 15*sizeof(_piece), rhs.black_map)
+				&& equal(white_map, white_map + 15*sizeof(_piece), rhs.white_map)
+				&& (details&1) == (rhs.details&1)
+				&& (details >> 8) == (rhs.details >> 8);
+				//&& halfmove_clock == rhs.halfmove_clock
+				//&& is_in_check() == rhs.is_in_check();
+	}
 
 private:
 	void continuous_gen (_property type, _location start, vector<_move> &v, _property col, char difference);

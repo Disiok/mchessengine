@@ -15,23 +15,24 @@ using namespace myriad;
 using namespace std;
 
 position current_position;
-position perft_position;
-void Perft(int depth, bool serial, bool debug);
-long Perft(int depth);
 
-set<std::pair<position, int> > checkedPositions;
+int captures = 0, mates = 0, checks = 0, ep = 0, castle = 0, promo = 0;
 
+void divide(int depth);
+void perft(int depth, bool serial, bool debug);
+long perft_benchmark(int depth);
+long perft_debug (int depth, _move previous);
 
 int main() {
 	cout << "Welcome to Myriad Standalone Utility" << endl;
 	cout << "~~Myriad (c) Team Spark~~" << endl;
 	cout << "**Utility last updated: 7 Aug. 2012**" << endl << endl;
-	cout << "<<Input 'help' for help menu." << endl;
+	cout << "Input 'help' for help menu." << endl;
 	cout << "-------------------------------" << endl;
-	cout << ">> ";
 
 	string input;
 	do {
+		cout << ">> ";
 		getline(cin, input);
 		stringstream ss (input);
 		string command_name, arguments;
@@ -42,7 +43,7 @@ int main() {
 				getline (ss, arguments);
 				fen += arguments;
 			}
-			position current_position(fen);
+			current_position = fen;
 		} else if (!command_name.compare("perft")){
 			getline(ss, arguments, ' ');
 			int depth;
@@ -55,15 +56,11 @@ int main() {
 				else if (!arguments.compare("d") || !arguments.compare("debug") || !arguments.compare("+d") ||
 					!arguments.compare("deb")) debug = true;
 			}
-
-			cout << "---------------Perf. Test Start---------------" << endl;
-			if (debug) cout << "<< Depth\tNodes\tCaptures\tMates\tEp\tChecks" << endl;
-			else cout << "<< Depth\tNodes\tTime(s)\tkN/s" << endl;
-			Perft(depth, serial, debug);
-			cout << "----------------Perf. Test End----------------" << endl;
-			cout << ">> ";
-
-
+			cout << "<< ---------------Perf. Test Start---------------" << endl;
+			if (debug) cout << "<< Depth\t\tNodes\tKill\tMates\tEp\tCheck\tPromo\tCastles" << endl;
+			else cout << "<< Depth\tNodes\t\tTime(s)\tkN/s" << endl;
+			perft(depth, serial, debug);
+			cout << "<< ----------------Perf. Test End----------------" << endl;
 		} else if (!command_name.compare("make_move")){
 			getline(ss, arguments, ' ');
 			_move move;
@@ -72,21 +69,40 @@ int main() {
 			current_position.make_move(move);
 			cout << "<< Resultant Position: " << endl;
 			cout << current_position.get_graphical();
-			cout << ">> ";
 		} else if (!command_name.compare("help")){
 			cout << "<< Currently implemented features include: " << endl;
+			cout << "<< divide <depth>-> calls divide for the current position to a specified depth.";
 			cout << "<< perft <depth>" << endl;
 			cout << "<< \t perft <depth>-> calls perft for the current position to a specified depth." << endl;
 			cout << "<< \t perft <depth> (+s)-> calls perft for all depths up to the specified depth." << endl;
 			cout << "<< \t perft <depth> (+d)-> calls perft and displays debug numbers." << endl;
 			cout << "<< make_move <move>-> makes a move and displays the resultant position." << endl;
-			cout << ">> ";
-		} else cout << "<< Input not recognized. Input 'help' for the help menu.";
+		} else if (!command_name.compare("divide")){
+			getline(ss, arguments, ' ');
+			int depth;
+			stringstream(arguments) >> depth;
+			if (depth >= 2){
+				cout << "<< ---------------Divide Test Start---------------" << endl;
+				cout << "<< Depth\t\tNodes\tResulting FEN" << endl;
+				divide(depth);
+				cout << "<< ----------------Divide Test End----------------" << endl;
+			} else cout << "<< Cannot perform divide with a depth lower than 2!" << endl;
+		} else if (!command_name.compare("move_gen")){
+			cout << "<< ---------------Movegen Start---------------" << endl;
+			cout << "<< The legal move(s) in the current position are: ";
+			vector <_move> moves = current_position.move_gen();
+			int size = moves.size();
+			for (int i = 0; i < size; i++) {
+				if (i % 8 == 0) cout << endl << "<< ";
+				cout << move_to_string(moves[i], current_position) << ". ";
+			}
+			cout << endl << "<< ----------------Movegen End----------------" << endl;
+		} else if (!command_name.compare("display")){
+			cout << endl << current_position.get_graphical() << endl;
+		} else cout << "<< Input not recognized. Input 'help' for the help menu." << endl;
 	} while (input.compare("exit"));
-
-	position p2(string("rnbqkbnr/pp3ppp/8/2p1p3/3pP3/3P2P1/PPP1NPBP/R1BQK1NR b KQkq - 1 6"));
-	cout << endl << (string)p2 << endl;
-} /*
+}
+/*
 int main (){
 	position p;
 	p.make_move(0x3212);
@@ -105,58 +121,86 @@ int main (){
 		p.unmake_move(moves[i], details);
 	}
 } */
-void Perft (int depth, bool serial, bool debug){
-	if (debug) {
-		// XXX: Implement!
+void divide(int depth){
+	vector <_move> moves = current_position.move_gen();
+	int n_moves = moves.size();
+	long total = 0;
+	_property detail = current_position.details;
+	for (int i = 0; i < n_moves; i++){
+		cout << "<< " << move_to_string(moves[i], current_position) << "\t\t";
+		current_position.make_move(moves[i]);
+		long nodes = perft_benchmark(depth - 1);
+		cout << nodes << "\t" << (string) current_position << endl;
+		total += nodes;
+		current_position.unmake_move(moves[i], detail);
 	}
-	int start = serial ? 1 : depth;
-	for (int i = start; i <= depth; i++){
-		clock_t start = time(0);
-		long nodes = Perft(i);
-		clock_t end = time(0);
-		double diff = difftime(start, end);
-		cout << "   " << depth << "\t" << nodes << "\t" << diff << "\t" << nodes / diff << endl;
-	}
-
-	checkedPositions.erase(checkedPositions.begin(), checkedPositions.end());
+	cout << "<< Total number of positions: " << total << endl;
 }
-long Perft(int depth){
-
-	//returns pair of iterators where the first one leads to the first element
-	//not greater than the argument
-	//do not continue if a search at like or higher depth has been done or started
-	if ( (*checkedPositions.equal_range(
-					pair<position, int>(perft_position, depth)
-			).first).first == perft_position) {
-		return 0;
+void perft (int depth, bool serial, bool debug){
+	int start = serial ? 1 : depth;
+	long nodes;
+	for (int i = start; i <= depth; i++){
+		if (debug) {
+			captures = 0;
+			mates = 0;
+			ep = 0;
+			checks = 0;
+			castle = 0;
+			promo = 0;
+			nodes = perft_debug (i, 0);
+			cout << "<< " << i << "\t\t" << nodes << "\t\t" << captures << "\t" <<  mates << "\t" << ep
+				 << "\t" << checks << "\t" << promo << "\t" << castle << endl;
+		}
+		else {
+			clock_t start = time(0);
+			nodes = perft_benchmark(i);
+			clock_t end = time(0);
+			double diff = difftime(end, start);
+			cout << "<< " << i << "\t\t" << nodes << "\t\t" << diff << "\t" << nodes / (1000 * diff) << endl;
+		}
 	}
-	//insert returns a pair of iterator and bool, the bool which indicates
-	//the success of the insertion
-	//do not continue if this search at this depth has been done
-	/*if ((checkedPositions.insert(
-			std::pair<position, int>(perft_position, depth))).second
-			== false) {
-		return 0;
-	}*/
-	checkedPositions.insert(pair<position, int>(perft_position, depth));
-
-	if (depth == 0) {
-
-		return 1;
-	}
-
+}
+long perft_benchmark(int depth){
+	if (depth == 1) return current_position.move_gen().size();
 
 	int nodes = 0, n_moves;
-	_property details = perft_position.details;
-	vector <_move> moves = perft_position.move_gen();
+	_property details = current_position.details;
+	vector <_move> moves = current_position.move_gen();
 	n_moves = moves.size();
 	for (int i = 0; i < n_moves; i++){
-		perft_position.make_move(moves[i]);
-		nodes += Perft(depth - 1);
-
-		//cout << "depth: " << depth << " / nodes: " << nodes << endl;
-
-		perft_position.unmake_move(moves[i], details);
+		current_position.make_move(moves[i]);
+		nodes += perft_benchmark(depth - 1);
+		current_position.unmake_move(moves[i], details);
+	}
+	return nodes;
+}
+long perft_debug (int depth, _move prev_move){
+	if (depth == 0){
+		_property modifier = get_move_modifier(prev_move);
+		if (current_position.is_in_check()) checks ++;
+		if (current_position.move_gen().size() == 0) mates++;
+		switch (modifier){
+		case WKS_CASTLE: case BKS_CASTLE: case WQS_CASTLE: case BQS_CASTLE: castle++; break;
+		case EN_PASSANT: captures++; ep++; break;
+		case DOUBLE_ADVANCE: case 0: break;
+		default:
+			if (modifier < 10) promo++;
+			else {
+				if ((modifier >> EIGHT_SH) != 0) promo++;
+				captures++;
+			}
+			break;
+		}
+		return 1;
+	}
+	int nodes = 0, n_moves;
+	_property details = current_position.details;
+	vector <_move> moves = current_position.move_gen();
+	n_moves = moves.size();
+	for (int i = 0; i < n_moves; i++){
+		current_position.make_move(moves[i]);
+		nodes += perft_debug(depth - 1, moves[i]);
+		current_position.unmake_move(moves[i], details);
 	}
 	return nodes;
 }

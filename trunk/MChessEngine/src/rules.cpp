@@ -158,7 +158,7 @@ vector <_move> position::move_gen() {
 			/* Attempt to block threat by interposing a piece. Possible only with ranged threats. */
 			_location double_adv_row = start_row + 2 * (turn_col ? DOWN : UP);
 			if (threat_type != PAWN && threat_type != KNIGHT){
-				char diff = getDifference(threat_loc, c_loc);
+				char diff = get_difference(threat_loc, c_loc);
 				_location start;
 				_piece obstruct;
 
@@ -519,10 +519,10 @@ bool position::is_in_check()  {
 		}
 	}
 	for(int i = 0; i < 8; i++){
-		obstruct = piece_search(current + KNIGHT_MOVE[i], opp_col);
+		obstruct = piece_search(king + KNIGHT_MOVE[i], opp_col);
 		if (get_piece_type(obstruct) == KNIGHT) return true;
 	}
-	return zero_piece;
+	return false;
 }
 void position::unmake_move (_move previous_move, _property prev_details){
 	details = prev_details;
@@ -644,7 +644,7 @@ vector <_piece> position::reachable_pieces (_location square, _property map){
 		}
 	}
 	for(int i = 0; i < 8; i++){
-		obstruct = piece_search(current + KNIGHT_MOVE[i], map ^ 1);
+		obstruct = piece_search(square + KNIGHT_MOVE[i], map ^ 1);
 		if (get_piece_type(obstruct) == KNIGHT) to_return.push_back(obstruct);
 	}
 	return to_return;
@@ -690,38 +690,15 @@ _piece* position::create_guardian_map (_property col, _property opp_col){
 	}
 	return guardian_map;
 }
-char position:: getDifference(_location loc, _location k_loc) {
-	char d = 0, next_loc = k_loc;
-	char diff;
-
-	for(int i = 0 ; i < 8; i++) {
-		diff = RADIAL[i];
-		next_loc = k_loc;
-
-		/*do {
-                                next_loc += diff;
-
-                                if(next_loc == loc) {
-                                        d = diff;
-                                        break;
-                                }
-                        } while((next_loc & 0x88) == 0);*/
-
-		while ((next_loc & 0x88) == 0) {
-			if(next_loc == loc) {
-				d = diff;
-				break;
-			}
-			next_loc += diff;
-		}
-
-		if(d != 0)
-			return d;
-	}
-
-	//The pieces are not in a horizontal, vertical, diagonal line
-	//Return some error code
-	return 0x7f;
+char position::get_difference(_location loc, _location k_loc) {
+	_location t_rank = loc >> FOUR_SH, t_file = loc & NIBBLE_MASK, k_rank = k_loc >> FOUR_SH,
+			  k_file = k_loc & NIBBLE_MASK;
+	if (t_rank == k_rank) return loc > k_loc ? RIGHT : LEFT;
+	if (t_file == k_file) return loc > k_loc ? UP : DOWN;
+	signed int rank_diff = t_rank - k_rank, file_diff = t_file - k_file;
+	if (rank_diff == file_diff) return loc > k_loc ? UP_RIGHT: DOWN_LEFT;
+	else return loc > k_loc ? UP_LEFT : DOWN_RIGHT;
+	return 0;
 }
 inline void position::kill(_piece& victim, _property victim_map) {
 	_piece* search_map = victim_map ? black_map : white_map;

@@ -58,10 +58,9 @@ public:
 	//creates a graphical representation
 	string get_graphical();
 
-	bool operator<(const position& rhs) const
-			{ return halfmove_clock < rhs.halfmove_clock; };
+	bool operator<(const position& rhs) const { return halfmove_clock < rhs.halfmove_clock; };
 	bool operator==(const position& rhs) const
-	{
+	{	// XXX: Replace with Zobrist comparison
 		return equal(black_map, black_map + 15*sizeof(_piece), rhs.black_map)
 				&& equal(white_map, white_map + 15*sizeof(_piece), rhs.white_map)
 				&& (details&1) == (rhs.details&1)
@@ -78,7 +77,7 @@ private:
 	int get_last_index(_piece *map);
 	vector<_piece> reachable_pieces(_location sq, _property map);
 	void single_gen (_property type, _location start, vector<_move> &v, _property opp_col, char difference);
-	char getDifference(_location loc, _location k_loc);
+	char get_difference(_location loc, _location k_loc);
 };
 // ======================End of Classes======================
 // ======================Constants=====================

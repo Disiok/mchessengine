@@ -9,7 +9,7 @@
 #include <iostream>
 #include <ctime>
 #include "myriad.h"
-#include<set>
+#include <set>
 
 using namespace myriad;
 using namespace std;

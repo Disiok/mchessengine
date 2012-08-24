@@ -99,6 +99,8 @@ int main() {
 			cout << endl << "<< ----------------Movegen End----------------" << endl;
 		} else if (!command_name.compare("display")){
 			cout << endl << current_position.get_graphical() << endl;
+		} else if (!command_name.compare("exit")){
+			cout << "Debug Utility Closing..." << endl;
 		} else cout << "<< Input not recognized. Input 'help' for the help menu." << endl;
 	} while (input.compare("exit"));
 }

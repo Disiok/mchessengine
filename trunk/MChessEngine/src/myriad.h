@@ -71,13 +71,14 @@ public:
 
 private:
 	void continuous_gen (_property type, _location start, vector<_move> &v, _property col, char difference);
-	_piece* create_guardian_map (_property col, _property opp_col);		/* Returns the checking piece. */
+	_piece* create_guardian_map (_property col, _property opp_col);
+	char get_difference(_location loc, _location k_loc);
+	int get_last_index(_piece *map);
 	void kill(_piece& victim, _property map);
 	void king_gen(_location start, _piece &king, vector <_move> &v, _property opp_col, char difference);
-	int get_last_index(_piece *map);
+	void pawn_capture_reach (vector <_piece> &v, _location target, _property opp_map);
 	vector<_piece> reachable_pieces(_location sq, _property map);
 	void single_gen (_property type, _location start, vector<_move> &v, _property opp_col, char difference);
-	char get_difference(_location loc, _location k_loc);
 };
 // ======================End of Classes======================
 // ======================Constants=====================
@@ -176,16 +177,13 @@ inline _property get_castle_right (_property detail, _property modifier)
 string piece_to_string (_piece p);
 string move_to_string (_move m, position &p);
 string piecetype_to_string (_property type);
-inline string location_to_string (_location sq)
-	{
-		stringstream ss;
-		ss << (1 + (sq >> FOUR_SH));
-		return string() + (char)('a' + (sq & TRIPLET_MASK)) + ss.str();
-	}
-inline _location string_to_location(string location) {
-
-	return ( ((location[0] - 'a') << 4) + (location[2] - '1'));
+inline string location_to_string (_location sq){
+	stringstream ss;
+	ss << (1 + (sq >> FOUR_SH));
+	return string() + (char)('a' + (sq & TRIPLET_MASK)) + ss.str();
 }
+inline _location string_to_location(string location)
+	{	return (((location[0] - 'a') << 4) + (location[2] - '1'));	}
 // ======================End of Functions======================
 }
 

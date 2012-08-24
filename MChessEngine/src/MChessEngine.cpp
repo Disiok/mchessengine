@@ -58,7 +58,7 @@ int main() {
 			}
 			cout << "<< ---------------Perf. Test Start---------------" << endl;
 			if (debug) cout << "<< Depth\t\tNodes\tKill\tMates\tEp\tCheck\tPromo\tCastles" << endl;
-			else cout << "<< Depth\tNodes\t\tTime(s)\tkN/s" << endl;
+			else cout << "<< Depth\tNodes\t\tTime(ms)\tkN/s" << endl;
 			perft(depth, serial, debug);
 			cout << "<< ----------------Perf. Test End----------------" << endl;
 		} else if (!command_name.compare("make_move")){
@@ -154,17 +154,16 @@ void perft (int depth, bool serial, bool debug){
 				 << "\t" << checks << "\t" << promo << "\t" << castle << endl;
 		}
 		else {
-			clock_t start = time(0);
+			clock_t start = clock();
 			nodes = perft_benchmark(i);
-			clock_t end = time(0);
-			double diff = difftime(end, start);
-			cout << "<< " << i << "\t\t" << nodes << "\t\t" << diff << "\t" << nodes / (1000 * diff) << endl;
+			clock_t end = clock();
+			double diff = (1000 * (end - start)) / CLOCKS_PER_SEC;
+			cout << "<< " << i << "\t\t" << nodes << "\t\t" << diff << "\t" << nodes / (diff) << endl;
 		}
 	}
 }
 long perft_benchmark(int depth){
 	if (depth == 1) return current_position.move_gen().size();
-
 	int nodes = 0, n_moves;
 	_property details = current_position.details;
 	vector <_move> moves = current_position.move_gen();

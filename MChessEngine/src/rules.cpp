@@ -101,7 +101,7 @@ void position::make_move(_move m) {
 				} else if (type == KING) details &= is_black ? 0x003ff : 0x00cff;
 			} else moving = create_piece (end, promote_to, is_black);
 		}
-		return;
+		break;
 	}
 }
 vector <_move> position::move_gen() {
@@ -545,7 +545,8 @@ void position::unmake_move (_move previous_move, _property prev_details){
 	_piece* turn_map = turn_col ? black_map : white_map;
 	_piece* opp_map = turn_col ? white_map : black_map;
 	_piece* captured;
-	_piece &moved = piece_search(end, turn_col);
+	_piece* ep_moved;
+	_piece& moved = piece_search(end, turn_col);
 
 	halfmove_clock--;
 	switch (modifier){
@@ -561,8 +562,8 @@ void position::unmake_move (_move previous_move, _property prev_details){
 	case EN_PASSANT:
 		captured = &opp_map[get_last_index(opp_map) + 1];
 		*captured = create_piece(end, PAWN, opp_col);
-		moved = piece_search(end + (turn_col ? UP : DOWN), turn_col);
-		moved = create_piece(start, PAWN, turn_col);
+		ep_moved = &piece_search(end + (turn_col ? DOWN : UP), turn_col);
+		*ep_moved = create_piece(start, PAWN, turn_col);
 		break;
 	default:
 		if (modifier < 10) moved = create_piece (start, PAWN, turn_col);

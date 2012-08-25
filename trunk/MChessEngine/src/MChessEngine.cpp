@@ -157,8 +157,9 @@ void perft (int depth, bool serial, bool debug){
 			clock_t start = clock();
 			nodes = perft_benchmark(i);
 			clock_t end = clock();
-			double diff = (1000 * (end - start)) / CLOCKS_PER_SEC;
-			cout << "<< " << i << "\t\t" << nodes << "\t\t" << diff << "\t" << nodes / (diff) << endl;
+			double diff = (1000.0 * (end - start)) / CLOCKS_PER_SEC;
+			cout << "<< " << i << "\t\t" << nodes << "\t\t" << diff
+					<< "\t" << fixed << setprecision(3) << nodes / (diff) << endl;
 		}
 	}
 }

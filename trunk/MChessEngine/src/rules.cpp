@@ -114,7 +114,7 @@ vector <_move>* position::move_gen() {
 	_location king = get_piece_location(turn_map[0]);
 	//Reserving for 35 moves, the average branching factor
 	vector <_move>* moves = new vector<_move>;
-	//moves->reserve(35);
+	moves->reserve(35);
 	vector<_piece> threats = reachable_pieces(get_piece_location(turn_map[0]), turn_col);
 	pawn_capture_reach(threats, king, opp_col);	/* Consider pawns that can reach the king */
 	int threats_size = threats.size();

@@ -93,12 +93,14 @@ int main() {
 		} else if (!command_name.compare("move_gen")){
 			cout << "<< ---------------Movegen Start---------------" << endl;
 			cout << "<< The legal move(s) in the current position are: ";
-			vector <_move> moves = current_position.move_gen();
-			int size = moves.size();
+			vector <_move>* moves = current_position.move_gen();
+			int size = moves->size();
 			for (int i = 0; i < size; i++) {
 				if (i % 8 == 0) cout << endl << "<< ";
-				cout << move_to_string(moves[i], current_position) << ". ";
+				//Or we could be sane and just call ->at(i)
+				cout << move_to_string(moves->operator[](i), current_position) << ". ";
 			}
+			delete moves;
 			cout << endl << "<< ----------------Movegen End----------------" << endl;
 		} else if (!command_name.compare("display")){
 			cout << endl << current_position.get_graphical() << endl;
@@ -106,8 +108,8 @@ int main() {
 			cout << "Debug Utility Closing..." << endl;
 		} else cout << "<< Input not recognized. Input 'help' for the help menu." << endl;
 
-		std::cout << "Looped in " << fixed <<
-			<< ((double)(clock() - startTime))/CLOCKS_PER_SEC*1000 << "ms." << endl;
+		std::cout << "Looped in " << fixed
+			<< 1000.*(clock() - startTime)/CLOCKS_PER_SEC << "ms." << endl;
 	} while (input.compare("exit"));
 }
 /*
@@ -115,7 +117,7 @@ int main (){
 	position p;
 	p.make_move(0x3212);
 	vector <_move> moves = p.move_gen(), new_moves;
-	for (unsigned int i = 0; i < moves.size(); i++){
+	for (unsigned int i = 0; i < moves->size(); i++){
 		_property details = p.details;
 		cout << move_to_string(moves[i], p) << endl;
 		p.make_move(moves[i]);
@@ -130,18 +132,19 @@ int main (){
 	}
 } */
 void divide(int depth){
-	vector <_move> moves = current_position.move_gen();
-	int n_moves = moves.size();
+	vector <_move>* moves = current_position.move_gen();
+	int n_moves = moves->size();
 	long total = 0;
 	_property detail = current_position.details;
 	for (int i = 0; i < n_moves; i++){
-		cout << "<< " << move_to_string(moves[i], current_position) << "\t\t";
-		current_position.make_move(moves[i]);
+		cout << "<< " << move_to_string(moves->operator[](i), current_position) << "\t\t";
+		current_position.make_move(moves->operator[](i));
 		long nodes = perft_benchmark(depth - 1);
 		cout << nodes << "\t" << (string) current_position << endl;
 		total += nodes;
-		current_position.unmake_move(moves[i], detail);
+		current_position.unmake_move(moves->operator[](i), detail);
 	}
+	delete moves;
 	cout << "<< Total number of positions: " << total << endl;
 }
 void perft (int depth, bool serial, bool debug){
@@ -169,23 +172,33 @@ void perft (int depth, bool serial, bool debug){
 	}
 }
 long perft_benchmark(int depth){
-	if (depth == 1) return current_position.move_gen().size();
+	if (depth == 1) {
+		vector<_move>* moves = current_position.move_gen();
+		long size = moves->size();
+		delete moves;
+		return size;
+	}
 	int nodes = 0, n_moves;
 	_property details = current_position.details;
-	vector <_move> moves = current_position.move_gen();
-	n_moves = moves.size();
+	vector <_move>* moves = current_position.move_gen();
+	n_moves = moves->size();
 	for (int i = 0; i < n_moves; i++){
-		current_position.make_move(moves[i]);
+		current_position.make_move(moves->operator[](i));
 		nodes += perft_benchmark(depth - 1);
-		current_position.unmake_move(moves[i], details);
+		current_position.unmake_move(moves->operator[](i), details);
 	}
+	delete moves;
 	return nodes;
 }
 long perft_debug (int depth, _move prev_move){
 	if (depth == 0){
 		_property modifier = get_move_modifier(prev_move);
 		if (current_position.is_in_check()) checks ++;
-		if (current_position.move_gen().size() == 0) mates++;
+		vector<_move>* moves = current_position.move_gen();
+		if (moves->size() == 0) {
+			mates++;
+		}
+		delete moves;
 		switch (modifier){
 		case WKS_CASTLE: case BKS_CASTLE: case WQS_CASTLE: case BQS_CASTLE: castle++; break;
 		case EN_PASSANT: captures++; ep++; break;
@@ -202,12 +215,13 @@ long perft_debug (int depth, _move prev_move){
 	}
 	int nodes = 0, n_moves;
 	_property details = current_position.details;
-	vector <_move> moves = current_position.move_gen();
-	n_moves = moves.size();
+	vector <_move>* moves = current_position.move_gen();
+	n_moves = moves->size();
 	for (int i = 0; i < n_moves; i++){
-		current_position.make_move(moves[i]);
-		nodes += perft_debug(depth - 1, moves[i]);
-		current_position.unmake_move(moves[i], details);
+		current_position.make_move(moves->operator[](i));
+		nodes += perft_debug(depth - 1, moves->operator[](i));
+		current_position.unmake_move(moves->operator[](i), details);
 	}
+	delete moves;
 	return nodes;
 }

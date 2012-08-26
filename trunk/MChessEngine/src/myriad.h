@@ -50,7 +50,7 @@ public:
 	void make_move(_move m);
 	_piece& piece_search(_location square);					/* When search map is unknown */
 	_piece& piece_search(_location square, _property map);	/* WHITE for white, BLACK for black */
-	vector<_move> move_gen();
+	vector<_move>* move_gen();
 	void unmake_move (_move previous_move, _property prev_details);
 
 	//creates a fen string

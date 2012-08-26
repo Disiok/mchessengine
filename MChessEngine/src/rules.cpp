@@ -47,6 +47,9 @@ void position::make_move(_move m) {
 	_location start = get_move_start(m), end = get_move_end(m);
 	_piece& moving = piece_search (start, is_black);
 
+	//The end square is assumed to be the location of the en passant pawn
+	//The true end square is calculated by adding UP or DOWN
+	//So clearing the en passant square is safe
 	details = clear_epsq (details);
 	details = increase_ply_count (details);		// switch side to move, ++ plycount
 	halfmove_clock++;
@@ -62,6 +65,7 @@ void position::make_move(_move m) {
 			case 0x77: details = revoke_castle_right(details, BKS_CASTLE); break;
 			}
 		}
+		//Revoke castling rights due to a king move
 		else if (type == KING) details &= is_black ? 0x003ff : 0x00cff;
 		else if (type == PAWN) details = reset_ply_count (details);
 		return;

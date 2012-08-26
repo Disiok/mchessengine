@@ -37,6 +37,9 @@ int main() {
 		stringstream ss (input);
 		string command_name, arguments;
 		getline(ss, command_name, ' ');
+
+		clock_t startTime = clock();
+
 		if (!command_name.compare("set_board")){
 			string fen;
 			while (!ss.eof()){
@@ -102,6 +105,9 @@ int main() {
 		} else if (!command_name.compare("exit")){
 			cout << "Debug Utility Closing..." << endl;
 		} else cout << "<< Input not recognized. Input 'help' for the help menu." << endl;
+
+		std::cout << "Looped in " << fixed <<
+			<< ((double)(clock() - startTime))/CLOCKS_PER_SEC*1000 << "ms." << endl;
 	} while (input.compare("exit"));
 }
 /*
@@ -156,10 +162,9 @@ void perft (int depth, bool serial, bool debug){
 		else {
 			clock_t start = clock();
 			nodes = perft_benchmark(i);
-			clock_t end = clock();
-			double diff = (1000.0 * (end - start)) / CLOCKS_PER_SEC;
+			double diff = (1000.0 * (clock() - start)) / CLOCKS_PER_SEC;
 			cout << "<< " << i << "\t\t" << nodes << "\t\t" << diff
-					<< "\t" << fixed << setprecision(3) << nodes / (diff) << endl;
+					<< "\t" << fixed <<  nodes / (diff) << endl;
 		}
 	}
 }

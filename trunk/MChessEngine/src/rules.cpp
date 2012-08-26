@@ -68,6 +68,12 @@ void position::make_move(_move m) {
 		//Revoke castling rights due to a king move
 		else if (type == KING) details &= is_black ? 0x003ff : 0x00cff;
 		else if (type == PAWN) details = reset_ply_count (details);
+		switch (end){
+			case 0x00: details = revoke_castle_right(details, WQS_CASTLE); break;
+			case 0x07: details = revoke_castle_right(details, WKS_CASTLE); break;
+			case 0x70: details = revoke_castle_right(details, BQS_CASTLE); break;
+			case 0x77: details = revoke_castle_right(details, BKS_CASTLE); break;
+		}
 		return;
 	case WKS_CASTLE: case BKS_CASTLE:
 		map[0] += 0x02;
@@ -77,7 +83,7 @@ void position::make_move(_move m) {
 	case WQS_CASTLE: case BQS_CASTLE:
 		map[0] -= 0x02;
 		moving += 0x03;
-		details &= is_black ? 0x03ff : 0xc0ff;		/* revoke both castling rights */
+		details &= is_black ? 0x003ff : 0x00cff;		/* revoke both castling rights */
 		return;
 	case DOUBLE_ADVANCE:
 		moving = move_piece(moving, start, end);
@@ -104,6 +110,12 @@ void position::make_move(_move m) {
 					}
 				} else if (type == KING) details &= is_black ? 0x003ff : 0x00cff;
 			} else moving = create_piece (end, promote_to, is_black);
+			switch (end){
+				case 0x00: details = revoke_castle_right(details, WQS_CASTLE); break;
+				case 0x07: details = revoke_castle_right(details, WKS_CASTLE); break;
+				case 0x70: details = revoke_castle_right(details, BQS_CASTLE); break;
+				case 0x77: details = revoke_castle_right(details, BKS_CASTLE); break;
+			}
 		}
 		break;
 	}
@@ -142,9 +154,10 @@ vector <_move>* position::move_gen() {
 			/* Consider pawns only in capturing the checking piece, not to interpose. */
 			pawn_capture_reach(assassins, threat_loc, turn_col);
 			size = assassins.size();
-			bool guardian = false;
+			bool guardian;
 
 			for (unsigned int i = 0; i < size; i++){
+				guardian = false;	/* Reset guardian flag. */
 				for (int j = 0; j < 8; j++){
 					if (assassins[i] == guardian_map[j]){
 						guardian = true;
@@ -277,14 +290,16 @@ vector <_move>* position::move_gen() {
 					signed char diff;
 					switch (c_type){
 					case PAWN:
-						if (RADIAL[i] == pawn_direction){
+						if (i == 0 || i == 1){
 							attacker_loc = get_piece_location(guardian_map[i + 8]);
 							next_loc = c_loc + pawn_direction;
-							if (next_loc != attacker_loc) moves->push_back(create_move(c_loc, next_loc));
-							if ((c_loc & 0x70) == start_row){
-								next_loc += pawn_direction;
-								if (next_loc != attacker_loc)
-									moves->push_back(create_move(c_loc, next_loc, DOUBLE_ADVANCE));
+							if (piece_search(next_loc) == zero_piece) {
+								moves->push_back(create_move(c_loc, next_loc));
+								if ((c_loc & 0x70) == start_row){
+									next_loc += pawn_direction;
+									if (piece_search(next_loc) == zero_piece)
+										moves->push_back(create_move(c_loc, next_loc, DOUBLE_ADVANCE));
+								}
 							}
 						} else {
 							attacker_loc = get_piece_location(guardian_map[i + 8]);
@@ -312,13 +327,38 @@ vector <_move>* position::move_gen() {
 						break;
 						/* only permit moves along guardian direction */
 					case ROOK:
-						if (i < 4) continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[i]);
+						if (i == 0 || i == 1){
+							continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[0]);
+							continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[1]);
+						} else if (i == 2 || i == 3){
+							continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[2]);
+							continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[3]);
+						}
 						break;
 					case BISHOP:
-						if (i > 3) continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[i]);
+						if (i == 4 || i == 7){
+							continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[4]);
+							continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[7]);
+						} else if (i == 5 || i == 6){
+							continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[5]);
+							continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[6]);
+						}
 						break;
 					case QUEEN:
-						continuous_gen (c_type, c_loc, *moves, turn_col, RADIAL[i]);
+						if (i == 0 || i == 1){
+							continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[0]);
+							continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[1]);
+						} else if (i == 2 || i == 3){
+							continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[2]);
+							continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[3]);
+						} else if (i == 4 || i == 7){
+							continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[4]);
+							continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[7]);
+						} else if (i == 5 || i == 6){
+							continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[5]);
+							continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[6]);
+						}
+						break;
 					}
 					not_guardian = false;
 				}
@@ -350,7 +390,7 @@ vector <_move>* position::move_gen() {
 									turn_map[0] = move_piece (turn_map[0], c_loc, next_loc);
 									if (!is_in_check()) moves->push_back(create_move(c_loc, next_loc));
 									else {
-										if (i == 2) qs_avail = false;	/* Indices for RIGHT and LEFT respectively. */
+										if (i == 2) qs_avail = false;
 										if (i == 3) ks_avail = false;
 									}
 								} else {
@@ -379,9 +419,11 @@ vector <_move>* position::move_gen() {
 									turn_map[0] = temp;
 								}
 							}
-							if (get_castle_right(details, BKS_CASTLE)){
+							if (get_castle_right(details, WQS_CASTLE)){
 								next_loc = c_loc - 0x02;
-								if (qs_avail && (piece_search(next_loc) == zero_piece)){
+								_piece obstruct1 = piece_search(next_loc);
+								_piece obstruct2 = piece_search(next_loc + LEFT);
+								if (qs_avail && (obstruct1 == zero_piece) && (obstruct2 == zero_piece)){
 									turn_map[0] = move_piece(turn_map[0], c_loc, next_loc);
 									if (!is_in_check()) moves->push_back(create_move(0x00, 0x03, WQS_CASTLE));
 									turn_map[0] = temp;
@@ -390,7 +432,7 @@ vector <_move>* position::move_gen() {
 						} else {		/* If btm */
 							if (get_castle_right(details, BKS_CASTLE)){
 								next_loc = c_loc + 0x02;
-								if (ks_avail && (piece_search (next_loc) == zero_piece)){
+								if (ks_avail && (piece_search(next_loc) == zero_piece)){
 									turn_map[0] = move_piece(turn_map[0], c_loc, next_loc);
 									if (!is_in_check()) moves->push_back(create_move(0x77, 0x75, BKS_CASTLE));
 									turn_map[0] = temp;
@@ -398,7 +440,9 @@ vector <_move>* position::move_gen() {
 							}
 							if (get_castle_right(details, BQS_CASTLE)){
 								next_loc = c_loc - 0x02;
-								if (qs_avail && (piece_search(next_loc) == zero_piece)){
+								_piece obstruct1 = piece_search(next_loc);
+								_piece obstruct2 = piece_search(next_loc + LEFT);
+								if (qs_avail && (obstruct1 == zero_piece) && (obstruct2 == zero_piece)){
 									turn_map[0] = move_piece(turn_map[0], c_loc, next_loc);
 									if (!is_in_check()) moves->push_back(create_move(0x70, 0x73, BQS_CASTLE));
 									turn_map[0] = temp;
@@ -413,13 +457,12 @@ vector <_move>* position::move_gen() {
 					next_loc = c_loc + pawn_direction;
 					if(piece_search(next_loc) == zero_piece) {
 						/* in case of direct adv., sq & 0x88 always == 0, provided only legal positions */
-						_location row = c_loc & 0x70;
-						if (row == start_row){
+						if ((c_loc & 0x70) == start_row){
 							moves->push_back(create_move(c_loc, next_loc));
 							next_loc += pawn_direction;
 							if (piece_search(next_loc) == zero_piece)
 								moves->push_back(create_move(c_loc, next_loc, DOUBLE_ADVANCE));
-						} else if (row == promotion_row){
+						} else if ((next_loc & 0x70) == promotion_row){
 							for (_property i = KNIGHT; i < KING; i++)
 								moves->push_back(create_move(c_loc, next_loc, PROMOTE_OFFSET + i));
 						} else moves->push_back(create_move(c_loc, next_loc));
@@ -440,7 +483,7 @@ vector <_move>* position::move_gen() {
 						_piece& ep_pawn = piece_search(epsq, opp_col);
 						_piece c_temp = turn_map [current_index], opp_temp = ep_pawn;
 						ep_pawn = create_piece (0x99, PAWN, opp_col);
-						turn_map[current_index] = create_piece(0x99, PAWN, turn_col);
+						turn_map[current_index] = create_piece(epsq + pawn_direction, PAWN, turn_col);
 						if (!is_in_check()) moves->push_back(create_move(c_loc, epsq, EN_PASSANT));
 						turn_map[current_index] = c_temp;
 						ep_pawn = opp_temp;
@@ -486,20 +529,20 @@ vector <_move>* position::move_gen() {
 _piece& position::piece_search(_location square, _property map) {
 	_piece* search_map = (map == WHITE ? white_map : black_map);   // search one map only
 	for(int i = 0; i < 16; i++) {
-		if(get_piece_location(search_map[i]) == square) return search_map[i];
 		if(search_map[i] == zero_piece) return zero_piece;
+		if(get_piece_location(search_map[i]) == square) return search_map[i];
 	}
 	return zero_piece;
 }
 _piece& position::piece_search(_location square) {
 	// search white's then black's map
 	for(int i = 0; i < 16; i++) {
-		if(get_piece_location(white_map[i]) == square) return white_map [i];
 		if(white_map[i] == zero_piece) break;
+		if(get_piece_location(white_map[i]) == square) return white_map [i];
 	}
 	for(int i = 0; i < 16; i++) {
+		if(black_map[i] == zero_piece) return zero_piece;
 		if(get_piece_location(black_map[i]) == square) return black_map [i];
-		if(black_map[i] == zero_piece) break;
 	}
 	return zero_piece;
 }
@@ -530,7 +573,8 @@ bool position::is_in_check()  {
 					if(melee && ((pawn_index < i) && i < (pawn_index + 3))) return true; break;
 				case ROOK  : if(i < 4) return true; break;
 				case BISHOP: if(i > 3) return true; break;
-				case QUEEN : return obstruct;
+				case QUEEN : return true;
+				case KING : if (melee) return true; break;
 				}
 				break;
 			}
@@ -661,7 +705,7 @@ vector <_piece> position::reachable_pieces (_location square, _property map){
 		}
 	}
 	for(int i = 0; i < 8; i++){
-		obstruct = piece_search(square + KNIGHT_MOVE[i], map ^ 1);
+		obstruct = piece_search(square + KNIGHT_MOVE[i], !map);
 		if (get_piece_type(obstruct) == KNIGHT) to_return.push_back(obstruct);
 	}
 	return to_return;

@@ -39,7 +39,7 @@ namespace myriad {
 				       piecetype_to_string(modifier - PROMOTE_OFFSET);
 			} else {
 				string s = p_type + location_to_string(start) + ":" + location_to_string(end);
-				_property promote = modifier >> 6;
+				_property promote = modifier >> EIGHT_SH;
 				if(promote != 0) s += "=" + piecetype_to_string(promote);
 			}
 			return p_type + location_to_string(start) + ":" + location_to_string(end);

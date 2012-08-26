@@ -144,7 +144,7 @@ vector <_move>* position::move_gen() {
 			size = assassins.size();
 			bool guardian = false;
 
-			for (unsigned int i = 0; i < assassins.size(); i++){
+			for (unsigned int i = 0; i < size; i++){
 				for (int j = 0; j < 8; j++){
 					if (assassins[i] == guardian_map[j]){
 						guardian = true;

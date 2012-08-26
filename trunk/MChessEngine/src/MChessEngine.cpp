@@ -67,7 +67,7 @@ int main() {
 		} else if (!command_name.compare("make_move")){
 			getline(ss, arguments, ' ');
 			_move move;
-			stringstream(arguments) >> move;
+			istringstream(arguments) >> std::hex >> move;
 			cout << "<< Move Made: " << move_to_string(move, current_position) << endl;
 			current_position.make_move(move);
 			cout << "<< Resultant Position: " << endl;

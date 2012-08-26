@@ -60,14 +60,17 @@ namespace myriad {
 		for(unsigned char i = 0; i < 16; ++i) {
 			black_map[i] = white_map[i] = 0;
 		}
-		stringstream ss;
+		istringstream ss;
 		ss.str(fen);
 		string row;
-		// Where to next insert - 1
-		int lastAccessedMapIndices[2] = {1, 1};
-		//ranks 8-2 have a / as a delimiter
+		// What index at which to next write a character
+		// in the white map and black map, in that order
+		unsigned char nextMapInsertionIndices[2]
+				= {1,1};
+		//ranks 8-2 have a / as a terminator
+		//rank 1 has just a space
 		for(char rank = 7; rank >= 0; --rank) {
-			//assuming the delimiter is discarded from the stream
+			//The terminator is discarded.
 			if(rank > 0) {
 				getline(ss, row, '/');
 			}
@@ -75,11 +78,15 @@ namespace myriad {
 				ss >> row;
 			}
 
-			cout << endl << row << endl;
+			//cout << endl << row << endl;
 
 			//Go through space numbers and chess pieces one by one
-			for(unsigned char x = 0, file = 0; x < row.size(); ++x, ++file) {
-				//Empty spaces, increment the file by the number of spaces
+			//Note the two accumulators:
+			//x is which character of the string row
+			//file is which file on which we work on the actual chessboard
+			const size_t rowSize = row.size();
+			for(unsigned char x = 0, file = 0; x < rowSize; ++x, ++file) {
+				//Empty spaces: increment the file by the number of spaces
 				if(row[x] >= '1' && row[x] <= '8') {
 					stringstream ss2;
 					ss2 << row[x];
@@ -89,6 +96,7 @@ namespace myriad {
 					continue;
 				}
 
+				//Lowercase is black
 				const bool is_black = (row[x] >= 'b' && row[x] <= 'r');
 
 				_piece* map = is_black ? black_map : white_map;
@@ -100,27 +108,27 @@ namespace myriad {
 					continue;
 				}
 				else if(row[x] ==  'Q' + ((is_black) * 32)) {
-					map[lastAccessedMapIndices[is_black]]
+					map[nextMapInsertionIndices[is_black]]
 					= create_piece((rank << 4) + file, QUEEN, is_black);
 				}
 				else if(row[x] ==  'B' + ((is_black) * 32)) {
-					map[lastAccessedMapIndices[is_black]]
+					map[nextMapInsertionIndices[is_black]]
 					= create_piece((rank << 4) + file, BISHOP, is_black);
 				}
 				else if (row[x] == 'N' + ((is_black) * 32)) {
-					map[lastAccessedMapIndices[is_black]]
+					map[nextMapInsertionIndices[is_black]]
 					= create_piece((rank << 4) + file, KNIGHT, is_black);
 				}
 				else if(row[x] == 'R' + ((is_black) * 32)) {
-					map[lastAccessedMapIndices[is_black]]
+					map[nextMapInsertionIndices[is_black]]
 					= create_piece((rank << 4) + file, ROOK, is_black);
 				}
 				else if(row[x] ==  'P' + ((is_black) * 32)) {
-					map[lastAccessedMapIndices[is_black]]
+					map[nextMapInsertionIndices[is_black]]
 					= create_piece((rank << 4) + file, PAWN, is_black);
 				}
 
-				++lastAccessedMapIndices[is_black];
+				++nextMapInsertionIndices[is_black];
 			}
 
 		}
@@ -138,6 +146,9 @@ namespace myriad {
 		//if some player does have castling rights
 		if(castling_rights[0] != '-') {
 			for(unsigned char i = 0; i < castling_rights.size(); ++i) {
+				//Grants the castling rights
+				//Perhaps it's not worth writing a function as of course
+				//actual players are never granted castling rights
 				switch(castling_rights[i]) {
 				case 'K':
 					details ^= ((1 << 8));
@@ -314,8 +325,9 @@ namespace myriad {
 			else board[row][column] =  typeString.c_str()[0];
 		}
 
-		ss.str("");
+
 		ss.clear();
+		ss.str("");
 
 		//black pieces
 		for(int i = 0; i < 16; ++i) {

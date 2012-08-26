@@ -151,6 +151,7 @@ vector <_move>* position::move_gen() {
 						break;
 					}
 				}
+				//guardian is 0: the null terminator is hit
 				if (!guardian){
 					_location start = get_piece_location(assassins[i]);
 					_property type = get_piece_type(assassins[i]);

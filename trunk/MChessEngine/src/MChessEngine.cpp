@@ -29,14 +29,16 @@ int main() {
 	cout << "**Utility last updated: 7 Aug. 2012**" << endl << endl;
 	cout << "Input 'help' for help menu." << endl;
 	cout << "-------------------------------" << endl;
+	cout << left;	// left align formatting
 
 	string input;
 	do {
-		cout << ">> ";
+		cout << endl <<  ">> ";
 		getline(cin, input);
 		stringstream ss (input);
 		string command_name, arguments;
 		getline(ss, command_name, ' ');
+		cout << endl;
 
 		clock_t startTime = clock();
 
@@ -47,6 +49,8 @@ int main() {
 				fen += arguments;
 			}
 			current_position = fen;
+			cout << "<< The position has been set to the following position: " << endl;
+			cout << current_position.get_graphical() << endl;
 		} else if (!command_name.compare("perft")){
 			getline(ss, arguments, ' ');
 			int depth;
@@ -60,91 +64,96 @@ int main() {
 					!arguments.compare("deb")) debug = true;
 			}
 			cout << "<< ---------------Perf. Test Start---------------" << endl;
-			if (debug) cout << "<< Depth\t\tNodes\tKill\tMates\tEp\tCheck\tPromo\tCastles" << endl;
-			else cout << "<< Depth\tNodes\t\tTime(ms)\tkN/s" << endl;
+			if (debug) cout << "<< Depth\t" << setw(12) << "Nodes" << setw(7) << "Kill" << setw(7) << "Mates"
+							<< setw(7) << "Ep" << setw(7) << "Checks" << setw(7) << "Promo" << setw(7) << "Castle"
+							<< endl;
+			else cout << "<< Depth\t" << setw(12) << "Nodes" << setw(7) << "Time(ms)" << "\tkN/s" << endl;
 			perft(depth, serial, debug);
 			cout << "<< ----------------Perf. Test End----------------" << endl;
 		} else if (!command_name.compare("make_move")){
 			getline(ss, arguments, ' ');
 			_move move;
-			istringstream(arguments) >> std::hex >> move >> std::dec;
-			cout << "<< Move Made: " << move_to_string(move, current_position) << endl;
-			current_position.make_move(move);
-			cout << "<< Resultant Position: " << endl;
-			cout << current_position.get_graphical();
+			bool legal = false;
+			if (arguments[0] == 'x')
+				istringstream(arguments.substr(1,string::npos)) >> std::hex >> move >> std::dec;
+			else if (arguments[1] == 'x')
+				istringstream(arguments.substr(2,string::npos)) >> std::hex >> move >> std::dec;
+			else istringstream(arguments) >> move;
+			vector <_move> *all_moves = current_position.move_gen();
+			for (unsigned int i = 0; i < all_moves->size(); i++){
+				if (all_moves->operator[](i) == move){
+					legal = true;
+					break;
+				}
+			}
+			delete all_moves;
+			if (legal){
+				cout << "<< Move Made: " << move_to_string(move, current_position) << endl;
+				current_position.make_move(move);
+				cout << "<< Resultant Position: " << endl << endl;
+				cout << current_position.get_graphical();
+			} else cout << "<< An illegal move was entered!" << endl;
 		} else if (!command_name.compare("help")){
 			cout << "<< Currently implemented features include: " << endl;
-			cout << "<< divide <depth>-> calls divide for the current position to a specified depth.";
-			cout << "<< perft <depth>" << endl;
-			cout << "<< \t perft <depth>-> calls perft for the current position to a specified depth." << endl;
-			cout << "<< \t perft <depth> (+s)-> calls perft for all depths up to the specified depth." << endl;
-			cout << "<< \t perft <depth> (+d)-> calls perft and displays debug numbers." << endl;
+			cout << "<< " << endl;
+			cout << "<< display-> displays the current position." << endl;
+			cout << "<< divide <depth>-> calls divide for the current position to a specified depth." << endl;
+			cout << "<< exit-> closes this debug utility." << endl;
 			cout << "<< make_move <move>-> makes a move and displays the resultant position." << endl;
+			cout << "<< \t make_move x<moveh>-> move specified in hexadecimal." << endl;
+			cout << "<< move_gen-> calls the move_gen function against the current position. " << endl;
+			cout << "<< perft <depth>" << endl;
+			cout << "<< \t perft <depth>-> calls perft to a specified depth." << endl;
+			cout << "<< \t perft <depth> (+s)-> all depths up to the specified depth." << endl;
+			cout << "<< \t perft <depth> (+d)-> displays debug numbers instead of time." << endl;
+			cout << "<< set_board <fenstring>-> sets the current position." << endl;
 		} else if (!command_name.compare("divide")){
 			getline(ss, arguments, ' ');
 			int depth;
 			stringstream(arguments) >> depth;
 			if (depth >= 2){
 				cout << "<< ---------------Divide Test Start---------------" << endl;
-				cout << "<< Depth\t\tNodes\tResulting FEN" << endl;
+				cout << "<< " << setw(10) << "Move" << setw(12) << "Nodes" << "\tResulting FEN" << endl;
 				divide(depth);
 				cout << "<< ----------------Divide Test End----------------" << endl;
 			} else cout << "<< Cannot perform divide with a depth lower than 2!" << endl;
 		} else if (!command_name.compare("move_gen")){
-			cout << "<< ---------------Movegen Start---------------" << endl;
+			cout << "<< ---------------move_gen Start---------------" << endl;
 			cout << "<< The legal move(s) in the current position are: ";
 			vector <_move>* moves = current_position.move_gen();
 			int size = moves->size();
 			for (int i = 0; i < size; i++) {
 				if (i % 8 == 0) cout << endl << "<< ";
-				//Or we could be sane and just call ->at(i)
-				cout << move_to_string(moves->operator[](i), current_position) << ". ";
+				cout << move_to_string(moves->at(i), current_position) << ". ";
 			}
 			delete moves;
-			cout << endl << "<< ----------------Movegen End----------------" << endl;
+			cout << endl << "<< ----------------move_gen End----------------" << endl;
 		} else if (!command_name.compare("display")){
-			cout << endl << current_position.get_graphical() << endl;
+			cout << current_position.get_graphical() << endl;
 		} else if (!command_name.compare("exit")){
 			cout << "Debug Utility Closing..." << endl;
 		} else cout << "<< Input not recognized. Input 'help' for the help menu." << endl;
 
+		cout << endl;
 		std::cout << "Looped in " << fixed
 			<< 1000.*(clock() - startTime)/CLOCKS_PER_SEC << "ms." << endl;
 	} while (input.compare("exit"));
 }
-/*
-int main (){
-	position p;
-	p.make_move(0x3212);
-	vector <_move> moves = p.move_gen(), new_moves;
-	for (unsigned int i = 0; i < moves->size(); i++){
-		_property details = p.details;
-		cout << move_to_string(moves[i], p) << endl;
-		p.make_move(moves[i]);
-		new_moves = p.move_gen();
-		for (unsigned int j = 0; j < new_moves.size(); j++){
-			_property new_details = p.details;
-			cout << "\t" <<  move_to_string(new_moves[j], p) << endl;
-			p.make_move(new_moves[j]);
-			p.unmake_move(new_moves[j], new_details);
-		}
-		p.unmake_move(moves[i], details);
-	}
-} */
 void divide(int depth){
 	vector <_move>* moves = current_position.move_gen();
 	int n_moves = moves->size();
 	long total = 0;
 	_property detail = current_position.details;
 	for (int i = 0; i < n_moves; i++){
-		cout << "<< " << move_to_string(moves->operator[](i), current_position) << "\t\t";
-		current_position.make_move(moves->operator[](i));
+		cout << "<< " << setw(9) << move_to_string(moves->at(i), current_position);
+		current_position.make_move(moves->at(i));
 		long nodes = perft_benchmark(depth - 1);
-		cout << nodes << "\t" << (string) current_position << endl;
+		cout << setw(12) << nodes << "\t" << (string) current_position << endl;
 		total += nodes;
-		current_position.unmake_move(moves->operator[](i), detail);
+		current_position.unmake_move(moves->at(i), detail);
 	}
 	delete moves;
+	cout << "<< Number of branches divided: " << n_moves << endl;
 	cout << "<< Total number of positions: " << total << endl;
 }
 void perft (int depth, bool serial, bool debug){
@@ -159,15 +168,15 @@ void perft (int depth, bool serial, bool debug){
 			castle = 0;
 			promo = 0;
 			nodes = perft_debug (i, 0);
-			cout << "<< " << i << "\t\t" << nodes << "\t\t" << captures << "\t" <<  mates << "\t" << ep
-				 << "\t" << checks << "\t" << promo << "\t" << castle << endl;
-		}
-		else {
+			cout << "<< " << i << "\t\t" << setw(12) << nodes << setw(7) << captures << setw(7) <<  mates
+				 << setw(7) << ep << setw(7) << checks << setw(7) << promo << setw(7) << castle << endl;
+		} else {
 			clock_t start = clock();
 			nodes = perft_benchmark(i);
-			double diff = (1000.0 * (clock() - start)) / CLOCKS_PER_SEC;
-			cout << "<< " << i << "\t\t" << nodes << "\t\t" << diff
-					<< "\t" << fixed <<  nodes / (diff) << endl;
+			int diff = (1000 * (clock() - start)) / CLOCKS_PER_SEC;
+			cout << "<< " << i << "\t\t" << setw(12) << nodes << setw (7) << diff << "\t";
+			if (diff == 0) cout << "?" << endl;
+			else cout << nodes / (double) diff << endl;
 		}
 	}
 }
@@ -183,9 +192,9 @@ long perft_benchmark(int depth){
 	vector <_move>* moves = current_position.move_gen();
 	n_moves = moves->size();
 	for (int i = 0; i < n_moves; i++){
-		current_position.make_move(moves->operator[](i));
+		current_position.make_move(moves->at(i));
 		nodes += perft_benchmark(depth - 1);
-		current_position.unmake_move(moves->operator[](i), details);
+		current_position.unmake_move(moves->at(i), details);
 	}
 	delete moves;
 	return nodes;
@@ -218,9 +227,9 @@ long perft_debug (int depth, _move prev_move){
 	vector <_move>* moves = current_position.move_gen();
 	n_moves = moves->size();
 	for (int i = 0; i < n_moves; i++){
-		current_position.make_move(moves->operator[](i));
-		nodes += perft_debug(depth - 1, moves->operator[](i));
-		current_position.unmake_move(moves->operator[](i), details);
+		current_position.make_move(moves->at(i));
+		nodes += perft_debug(depth - 1, moves->at(i));
+		current_position.unmake_move(moves->at(i), details);
 	}
 	delete moves;
 	return nodes;

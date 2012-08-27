@@ -79,6 +79,7 @@ private:
 	void pawn_capture_reach (vector <_piece> &v, _location target, _property opp_map);
 	vector<_piece> reachable_pieces(_location sq, _property map);
 	void single_gen (_property type, _location start, vector<_move> &v, _property opp_col, char difference);
+	string get_2d();
 };
 // ======================End of Classes======================
 // ======================Constants=====================
@@ -162,7 +163,7 @@ inline _property create_capture_mod (_property attacker, _property victim, _prop
 
 /* detail _property accessors and mutators */
 inline bool is_black_to_move (_property detail) {	return detail & 1;	}
-inline _property get_epsq (_property detail) {	return detail >> EP_SH; }
+inline _property get_epsq (_property detail) {	return detail >> EP_SH;	}
 inline _property clear_epsq (_property detail) {	return detail & 0xfff;	}
 inline _property set_epsq (_property detail, _location epsq) /* assuming clear_epsq has been called */
 	{	return detail + (epsq << EP_SH);	}
@@ -172,11 +173,13 @@ inline _property revoke_castle_right (_property detail, _property modifier)
 	{	return detail & (~(1 << (modifier + 7)));	}
 inline _property get_castle_right (_property detail, _property modifier)
 	{	return (detail >> (modifier + 7)) & 1; }
+inline int get_plycount(_property detail) {	return (detail >> 1) & 0x7f;	}
 
 /* utility / debug functions */
 string piece_to_string (_piece p);
 string move_to_string (_move m, position &p);
 string piecetype_to_string (_property type);
+string piecetype_to_string_figurine(_property type, _property color);
 inline string location_to_string (_location sq){
 	stringstream ss;
 	ss << (1 + (sq >> FOUR_SH));

@@ -44,41 +44,26 @@ public:
 	unsigned short halfmove_clock;
 
 	position();
-	position(string fen);
-
+	position(string);		/* Conversion from FEN to string */
+	string exemplify();		/* Returns a displayable string representing the position. */
 	bool is_in_check ();
-	void make_move(_move m);
-	_piece& piece_search(_location square);					/* When search map is unknown */
-	_piece& piece_search(_location square, _property map);	/* WHITE for white, BLACK for black */
+	void make_move(_move);
+	_piece& piece_search(_location);					/* When search map is unknown */
+	_piece& piece_search(_location, _property);			/* WHITE for white, BLACK for black */
 	vector<_move>* move_gen();
-	void unmake_move (_move previous_move, _property prev_details);
-
-	//creates a fen string
-	operator string ();
-	//creates a graphical representation
-	string get_graphical();
-
-	bool operator<(const position& rhs) const { return halfmove_clock < rhs.halfmove_clock; };
-	bool operator==(const position& rhs) const
-	{	// XXX: Replace with Zobrist comparison
-		return equal(black_map, black_map + 15*sizeof(_piece), rhs.black_map)
-				&& equal(white_map, white_map + 15*sizeof(_piece), rhs.white_map)
-				&& (details&1) == (rhs.details&1)
-				&& (details >> 8) == (rhs.details >> 8);
-				//&& halfmove_clock == rhs.halfmove_clock
-				//&& is_in_check() == rhs.is_in_check();
-	}
-
+	void unmake_move (_move, _property);
+	operator string ();									/* FEN string conversion */
 private:
-	void continuous_gen (_property type, _location start, vector<_move> &v, _property col, char difference);
-	_piece* create_guardian_map (_property col, _property opp_col);
-	char get_difference(_location loc, _location k_loc);
-	int get_last_index(_piece *map);
-	void kill(_piece& victim, _property map);
-	void king_gen(_location start, _piece &king, vector <_move> &v, _property opp_col, char difference);
-	void pawn_capture_reach (vector <_piece> &v, _location target, _property opp_map);
-	vector<_piece> reachable_pieces(_location sq, _property map);
-	void single_gen (_property type, _location start, vector<_move> &v, _property opp_col, char difference);
+	inline void continuous_gen (_property, _location, vector<_move> &, _property, char);
+	inline _piece* create_guardian_map (_property, _property);
+	inline char get_difference(_location, _location);
+	inline int get_last_index(_piece*);
+	inline void kill(_piece& victim, _property map);
+	inline void king_gen(_location, _piece &, vector <_move> &, _property, char);
+	inline bool is_guardian (_piece*, _piece);
+	inline void pawn_capture_reach (vector <_piece> &, _location, _property);
+	inline vector<_piece> reachable_pieces(_location, _property);
+	inline void single_gen (_property, _location, vector<_move> &, _property, char);
 	string get_2d();
 };
 // ======================End of Classes======================

@@ -56,7 +56,7 @@ string piecetype_to_string(_property type) {
 	}
 	return "Invalid Type";
 }
-string position::get_graphical(){
+string position::exemplify(){
 	string to_return = "<<     a   b   c   d   e   f   g   h \n";
 	to_return += "<<   ----+---+---+---+---+---+---+----\n";
 	bool stm = is_black_to_move(details);

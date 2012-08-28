@@ -245,7 +245,7 @@ vector <_move>* position::move_gen() {
 				/* Use en passant to kill meelee checking pawn. */
 				_location left = epsq + LEFT, right = epsq + RIGHT;
 				_piece left_piece = piece_search (left, turn_col);
-				if (left_piece != zero_piece){
+				if (get_piece_type(left_piece) == PAWN){
 					guardian = false;
 					for (int i = 0; i < 8; i++){
 						if (guardian_map[i] == left_piece) {
@@ -256,7 +256,7 @@ vector <_move>* position::move_gen() {
 					if (!guardian) moves->push_back(create_move(left, epsq, EN_PASSANT));
 				}
 				_piece right_piece = piece_search (right, turn_col);
-				if (right_piece != zero_piece){
+				if (get_piece_type(right_piece) == PAWN){
 					guardian = false;
 					for (int i = 0; i < 8; i++){
 						if (guardian_map[i] == right_piece){
@@ -629,7 +629,7 @@ void position::unmake_move (_move previous_move, _property prev_details){
 	}
 }
 // Implementations of helper methods
-void position::continuous_gen(_property type, _location start, vector<_move> &v, _property col, char diff){
+inline void position::continuous_gen(_property type, _location start, vector<_move> &v, _property col, char diff){
 	_location current = start + diff;
 	while((current & 0x88) == 0) {
 		_piece obstruct = piece_search(current);
@@ -645,7 +645,7 @@ void position::continuous_gen(_property type, _location start, vector<_move> &v,
 		current += diff;
 	}
 }
-void position::single_gen(_property type, _location start, vector<_move> &v, _property opp_col, char diff){
+inline void position::single_gen(_property type, _location start, vector<_move> &v, _property opp_col, char diff){
 	_location target = start + diff;
 	if((target & 0x88) == 0) {
 		_piece obstruct = piece_search(target);
@@ -656,7 +656,7 @@ void position::single_gen(_property type, _location start, vector<_move> &v, _pr
 		}
 	}
 }
-void position::king_gen (_location start, _piece &king, vector <_move> &v, _property opp_col, char diff){
+inline void position::king_gen (_location start, _piece &king, vector <_move> &v, _property opp_col, char diff){
 	_piece temp = king, obstruct;
 	_location next_loc = start + diff;
 	if ((next_loc & 0x88) == 0){
@@ -680,7 +680,7 @@ void position::king_gen (_location start, _piece &king, vector <_move> &v, _prop
  * Note: this method is a copy of is_in_check(), using the same "octopus" idea. This method does not return
  * pawns that can reach the square via capture or advance.
  */
-vector <_piece> position::reachable_pieces (_location square, _property map){
+inline vector <_piece> position::reachable_pieces (_location square, _property map){
 	vector<_piece> to_return;
 	_piece obstruct;
 	_location current = square;
@@ -710,7 +710,7 @@ vector <_piece> position::reachable_pieces (_location square, _property map){
 	}
 	return to_return;
 }
-_piece* position::create_guardian_map (_property col, _property opp_col){
+inline _piece* position::create_guardian_map (_property col, _property opp_col){
 	_piece *turn_map = opp_col ? white_map : black_map;
 	_piece *guardian_map = new _piece [16];	/* initialises all indices to zero_piece */
 	_piece obstruct, guardian = zero_piece, attacker = zero_piece;
@@ -752,7 +752,7 @@ _piece* position::create_guardian_map (_property col, _property opp_col){
 	}
 	return guardian_map;
 }
-char position::get_difference(_location loc, _location k_loc) {
+inline char position::get_difference(_location loc, _location k_loc) {
 	_location t_rank = loc >> FOUR_SH, t_file = loc & NIBBLE_MASK, k_rank = k_loc >> FOUR_SH,
 			  k_file = k_loc & NIBBLE_MASK;
 	if (t_rank == k_rank) return loc > k_loc ? RIGHT : LEFT;
@@ -772,7 +772,11 @@ inline int position::get_last_index (_piece* map){
 	for (int i = 15; i > 0; i--) if (map[i] != zero_piece) return i;
 	return -1;
 }
-void position::pawn_capture_reach (vector <_piece> &v, _location target, _property threat_map){
+inline bool position::is_guardian (_piece *guardian_map, _piece piece_in_question){
+	for (int i = 0; i < 8; i++) if (guardian_map[i] == piece_in_question) return true;
+	return false;
+}
+inline void position::pawn_capture_reach (vector <_piece> &v, _location target, _property threat_map){
 	const char* opp_pawn_atk = threat_map ? BLACK_PAWN_ATTACK : WHITE_PAWN_ATTACK;
 	_piece obstruct1 = piece_search(target - opp_pawn_atk[0], threat_map);
 	_piece obstruct2 = piece_search(target - opp_pawn_atk[1], threat_map);

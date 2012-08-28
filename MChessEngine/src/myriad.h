@@ -33,6 +33,9 @@ typedef unsigned int _move;			/* move format(LSB->MSB): 8 bits for start, 8 bits
 typedef unsigned char _location;	/* standard 0x88 location square. */
 typedef unsigned long _zobrist;		/* Zobrist hash key */
 typedef unsigned long _zdata;		/* Data to store into Zobrist, XXX: organization unknown */
+
+
+typedef pair<_move,_property> _u; //"undo pair", used with operator-, operator-=
 // ======================End of Typedefs=====================
 // ======================Classes======================
 class position{
@@ -45,15 +48,54 @@ public:
 	unsigned short halfmove_clock;
 
 	position();
-	position(string);		/* Conversion from FEN to string */
-	string exemplify();		/* Returns a displayable string representing the position. */
+	position(string fen);
+	//Copy constructor
+
+	virtual ~position() {}
+
 	bool is_in_check ();
 	void make_move(_move);
 	_piece& piece_search(_location);					/* When search map is unknown */
 	_piece& piece_search(_location, _property);			/* WHITE for white, BLACK for black */
 	vector<_move>* move_gen();
-	void unmake_move (_move, _property);
-	operator string ();									/* FEN string conversion */
+	void unmake_move (_move previous_move, _property prev_details);
+
+	//creates a fen string
+	operator string ();
+	//creates a graphical representation
+	string get_graphical();
+
+	bool operator<(const position& rhs) const { return halfmove_clock < rhs.halfmove_clock; };
+	bool operator==(const position& rhs) const
+	{	// XXX: Replace with Zobrist comparison
+		return equal(black_map, black_map + 15*sizeof(_piece), rhs.black_map)
+				&& equal(white_map, white_map + 15*sizeof(_piece), rhs.white_map)
+				&& (details&1) == (rhs.details&1)
+				&& (details >> 8) == (rhs.details >> 8);
+				//&& halfmove_clock == rhs.halfmove_clock
+				//&& is_in_check() == rhs.is_in_check();
+	}
+	position& operator+=(const _move& m) {
+		this->make_move(m);
+		return *this;
+	}
+
+	//Call thus: position -= pair<_move, _property>(m,d)
+	position& operator-=(const _u& thePair) {
+		this->unmake_move(thePair.first, thePair.second);
+		return *this;
+	}
+	position operator+(const _move& m) {
+		position p = *this;
+		p += m;
+		return p;
+	}
+	position operator-(const _u& thePair) {
+		position p = *this;
+		p -= thePair;
+		return p;
+	}
+
 private:
 	inline void continuous_gen (_property, _location, vector<_move> &, _property, char);
 	inline _piece* create_guardian_map (_property, _property);

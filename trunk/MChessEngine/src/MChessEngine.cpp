@@ -183,6 +183,11 @@ void perft (int depth, bool serial, bool debug){
 long perft_benchmark(int depth){
 	if (depth == 1) {
 		vector<_move>* moves = current_position.move_gen();
+
+		/*for (vector<_move>::iterator i = moves->begin();
+				i < moves->end(); ++i)
+				cout << move_to_string(*i,current_position) << "|";
+		cout << endl;*/
 		long size = moves->size();
 		delete moves;
 		return size;
@@ -191,6 +196,8 @@ long perft_benchmark(int depth){
 	_property details = current_position.details;
 	vector <_move>* moves = current_position.move_gen();
 	n_moves = moves->size();
+
+
 	for (int i = 0; i < n_moves; i++){
 		current_position.make_move(moves->at(i));
 		nodes += perft_benchmark(depth - 1);

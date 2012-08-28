@@ -146,11 +146,11 @@ void divide(int depth){
 	_property detail = current_position.details;
 	for (int i = 0; i < n_moves; i++){
 		cout << "<< " << setw(9) << move_to_string(moves->at(i), current_position);
-		current_position.make_move(moves->at(i));
+		current_position += moves->at(i);
 		long nodes = perft_benchmark(depth - 1);
 		cout << setw(12) << nodes << "\t" << (string) current_position << endl;
 		total += nodes;
-		current_position.unmake_move(moves->at(i), detail);
+		current_position -= _u(moves->at(i), detail);
 	}
 	delete moves;
 	cout << "<< Number of branches divided: " << n_moves << endl;
@@ -199,9 +199,9 @@ long perft_benchmark(int depth){
 
 
 	for (int i = 0; i < n_moves; i++){
-		current_position.make_move(moves->at(i));
+		current_position += moves->at(i);
 		nodes += perft_benchmark(depth - 1);
-		current_position.unmake_move(moves->at(i), details);
+		current_position -= _u(moves->at(i), details);
 	}
 	delete moves;
 	return nodes;

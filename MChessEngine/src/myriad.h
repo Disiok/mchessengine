@@ -182,11 +182,11 @@ string piecetype_to_string (_property type);
 string piecetype_to_string_figurine(_property type, _property color);
 inline string location_to_string (_location sq){
 	stringstream ss;
-	ss << (1 + (sq >> FOUR_SH));
+	ss << (1 + (sq>> FOUR_SH));
 	return string() + (char)('a' + (sq & TRIPLET_MASK)) + ss.str();
 }
 inline _location string_to_location(string location)
-	{	return (((location[0] - 'a') << 4) + (location[2] - '1'));	}
+	{	return (((location[1] - '1') << 4) + (location[0] - 'a'));	}
 // ======================End of Functions======================
 }
 

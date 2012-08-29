@@ -12,9 +12,6 @@
 #include "myriad.h"
 
 namespace myriad{
-	class Round{
-
-	};
 
 	namespace Zobrist{
 		long multiplier[7] = {1, 2, 4, 6, 8, 10, 12};

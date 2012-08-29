@@ -19,6 +19,7 @@
 #include <cassert>
 #include <algorithm>
 #include <cstdlib>
+#include <cmath>
 #undef RAND_MAX
 #define RAND_MAX 4294967295
 
@@ -117,7 +118,18 @@ private:
 
 class Round{
 public:
-	const int size;
+	Round(int bits){
+		size = (int)(pow((float)2, (float)bits));
+		hashes[size];
+		depth[size];
+		bitstring_descript[size];
+		int temp = 0;
+		for(int i = 0; i < bits; ++i){
+			temp |= 1 << i;
+		}
+		MASK_INDEX = temp;
+	}
+	int size;
 	static const long SCORE_RSH = 23;
 	static const long EXACT_RSH = 22;
 	static const long BOUND_RSH = 21;
@@ -131,7 +143,7 @@ public:
 	inline long get(long);
 	bool set(long, long, char, bool, bool, _move, bool);
 private:
-	const int MASK_INDEX;
+	int MASK_INDEX;
 	vector<long> bitstring_descript;
 	vector<long> hashes;
 	vector<char> depth;

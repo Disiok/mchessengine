@@ -18,6 +18,9 @@
 #include <iomanip>
 #include <cassert>
 #include <algorithm>
+#include <cstdlib>
+#undef RAND_MAX
+#define RAND_MAX 4294967295
 
 using namespace std;
 
@@ -111,6 +114,49 @@ private:
 	inline vector<_piece> reachable_pieces(_location, _property);
 	inline void single_gen (_property, _location, vector<_move> &, _property, char);
 	string get_2d();
+};
+
+class Round{
+public:
+	const int size;
+	static const long SCORE_RSH = 23;
+	static const long EXACT_RSH = 22;
+	static const long BOUND_RSH = 21;
+	static const long STARTSQ_RSH = 13;
+	static const long ENDSQ_RSH = 5;
+	static const long MODIFIER_RSH = 1;
+	static const int MASK_BIT = 1;
+	static const int MASK_4BIT = 0xf;
+	static const int MASK_BYTE = 0xff;
+	inline int getSize();
+	inline long get(long);
+	bool set(long, long, char, bool, bool, _move, bool);
+private:
+	const int MASK_INDEX;
+	vector<long> bitstring_descript;
+	vector<long> hashes;
+	vector<char> depth;
+};
+
+namespace Zobrist{
+	/*long hash_values[836];
+	int multiplier[7];
+	long base_hash;
+	int CASTLING_HASHES;
+	char EN_PASSENT_ID;*/
+	extern long hash_values[836];
+	extern long multiplier[7];
+	extern long base_hash;
+	extern int CASTLING_HASHES;
+	extern char EN_PASSANT_ID;
+	void init ();
+	long createinitialhash (vector<_piece>, vector<_piece>, vector<bool>, char);
+	long xorinout (long, char, char, char, char);
+	long xorout (long, char, char, char);
+	long xorcastling (long, vector<bool>, vector<bool>);
+	long xorepsq (long, char, char);
+	long xorpromotion (long, char, char, char);
+	int getIndex(char, char, char);
 };
 // ======================End of Classes======================
 // ======================Constants=====================
@@ -220,8 +266,20 @@ inline string location_to_string (_location sq){
 	ss << (1 + (sq>> FOUR_SH));
 	return string() + (char)('a' + (sq & TRIPLET_MASK)) + ss.str();
 }
-inline _location string_to_location(string location)
-	{	return (((location[1] - '1') << 4) + (location[0] - 'a'));	}
+inline _location string_to_location(string location){
+	return (((location[1] - '1') << 4) + (location[0] - 'a'));
+}
+
+
+/* Round functions */
+inline int Round::getSize(){
+	return size;
+}
+inline long Round::get(long hash){
+	int index = (int)(hash & (MASK_INDEX));
+	if(hashes[index] == hash) return bitstring_descript [index];
+	return -1;
+}
 // ======================End of Functions======================
 }
 

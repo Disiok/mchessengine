@@ -16,53 +16,53 @@ namespace myriad {
 _piece zero_piece = 0;
 
 position::position() : details(start_position), halfmove_clock(0) {
-	for (int i = 0; i < 0x88 ; ++i)		board[i]=zero_piece;
+	for (int i = 0; i < 0x88 ; ++i)		board[i]=&zero_piece;
 	// king is always first
 	white_map[0] = create_piece(0x04, KING, WHITE);
-	board[0x04]=white_map[0];
+	board[0x04]= &white_map[0];
 	black_map[0] = create_piece(0x74, KING, BLACK);
-	board[0x74]=white_map[1];
+	board[0x74]= &black_map[0];
 	// initialize other pieces
 	white_map[1] = create_piece(0x00, ROOK, WHITE);
-	board[0x00]=white_map[1];
+	board[0x00]= &white_map[1];
 	black_map[1] = create_piece(0x70, ROOK, BLACK);
-	board[0x70]=black_map[1];
+	board[0x70]= &black_map[1];
 
 	white_map[2] = create_piece(0x01, KNIGHT, WHITE);
-	board[0x01]=white_map[2];
+	board[0x01]= &white_map[2];
 	black_map[2] = create_piece(0x71, KNIGHT, BLACK);
-	board[0x71]=black_map[2];
+	board[0x71]= &black_map[2];
 
 	white_map[3] = create_piece(0x02, BISHOP, WHITE);
-	board[0x02]=white_map[3];
+	board[0x02]= &white_map[3];
 	black_map[3] = create_piece(0x72, BISHOP, BLACK);
-	board[0x72]=black_map[3];
+	board[0x72]= &black_map[3];
 
 	white_map[4] = create_piece(0x03, QUEEN, WHITE);
-	board[0x03]=white_map[4];
+	board[0x03]= &white_map[4];
 	black_map[4] = create_piece(0x73, QUEEN, BLACK);
-	board[0x73]=black_map[4];
+	board[0x73]= &black_map[4];
 
 	white_map[5] = create_piece(0x05, BISHOP, WHITE);
-	board[0x05]=white_map[5];
+	board[0x05]= &white_map[5];
 	black_map[5] = create_piece(0x75, BISHOP, BLACK);
-	board[0x75]=white_map[5];
+	board[0x75]= &black_map[5];
 
 	white_map[6] = create_piece(0x06, KNIGHT, WHITE);
-	board[0x06]=white_map[6];
+	board[0x06]= &white_map[6];
 	black_map[6] = create_piece(0x76, KNIGHT, BLACK);
-	board[0x76]=black_map[6];
+	board[0x76]= &black_map[6];
 
 	white_map[7] = create_piece(0x07, ROOK, WHITE);
-	board[0x07]=white_map[7];
+	board[0x07]= &white_map[7];
 	black_map[7] = create_piece(0x77, ROOK, BLACK);
-	board[0x77]=black_map[7];
+	board[0x77]= &black_map[7];
 	// initialize second rank with pawns
 	for(int i = 0; i < 8; ++i) {
 		white_map [i + 8] = create_piece(i + 0x10, PAWN, WHITE);
-		board[i+0x10]=white_map[i+8];
+		board[i+0x10]= &white_map[i+8];
 		black_map [i + 8] = create_piece(i + 0x60, PAWN, BLACK);
-		board[i+0x60]=black_map[i+8];
+		board[i+0x60]= &black_map[i+8];
 	}
 }
 void position::make_move(_move m) {
@@ -124,8 +124,8 @@ void position::make_move(_move m) {
 		details = reset_ply_count (details);
 		if (modifier < 10){
 			moving = create_piece (end, modifier - PROMOTE_OFFSET, is_black);
-			board[start] = zero_piece;
-			board[end] = moving;
+			board[start] = &zero_piece;
+			board[end] = &moving;
 		}else {
 			move_piece(moving, start, end, board);
 			kill(piece_search(end, !is_black), !is_black);
@@ -141,7 +141,7 @@ void position::make_move(_move m) {
 				} else if (type == KING) details &= is_black ? 0x003ff : 0x00cff;
 			} else {
 				moving = moving ^ 0x100 ^ (promote_to << 8);
-				board[end] = moving;
+				board[end] = &moving;
 			}
 			switch (end){
 				case 0x00: details = revoke_castle_right(details, WQS_CASTLE); break;
@@ -648,28 +648,28 @@ void position::unmake_move (_move previous_move, _property prev_details){
 	case EN_PASSANT:
 		captured = &opp_map[get_last_index(opp_map) + 1];
 		*captured = create_piece(end, PAWN, opp_col);
-		board[end] = *captured;
+		board[end] = captured;
 		temp = end + (turn_col ? DOWN : UP);
 		ep_moved = &piece_search(temp, turn_col);
 		*ep_moved = create_piece(start, PAWN, turn_col);
-		board[temp] = zero_piece;
-		board[start]= *ep_moved;
+		board[temp] = &zero_piece;
+		board[start]= ep_moved;
 		break;
 	default:
 		if (modifier < 10){
 			moved = create_piece (start, PAWN, turn_col);
-			board[end] = zero_piece;
-			board[start] = moved;
+			board[end] = &zero_piece;
+			board[start] = &moved;
 		}
 		else {
 			victim_type = (modifier >> FOUR_SH) & NIBBLE_MASK;
 			captured = &opp_map[get_last_index(opp_map) + 1];
 			*captured = create_piece(end, victim_type, opp_col);
-			board[end] = *captured;
+			board[end] = captured;
 			if ((modifier >> EIGHT_SH) == 0) move_piece (moved, end, start, board);
 			else {
 				moved = create_piece(start, PAWN, turn_col);
-				board[start] = moved;
+				board[start] = &moved;
 			}
 		}
 		break;

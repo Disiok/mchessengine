@@ -40,7 +40,7 @@ typedef pair<_move,_property> _u; //"undo pair", used with operator-, operator-=
 // ======================Classes======================
 class position{
 public:
-	_piece board[136];
+	_piece* board[136];
 	_piece white_map[16];
 	_piece black_map[16];
 	_property details;		/* LSB->MSB, 1 bit for stm, 7 bits for plycount, 4 bits for cstl. rights.,
@@ -173,10 +173,10 @@ extern _piece zero_piece; 					/* WARNING: g++ will not allow this to be declare
 inline _location get_piece_location(_piece p){ return p & LOCATION_MASK; }
 inline _property get_piece_color(_piece p){ return p >> COLOR_SH; }
 inline _property get_piece_type(_piece p){ return (p >> EIGHT_SH) & TRIPLET_MASK; }
-inline void move_piece(_piece& p, _location start, _location end, _piece* board){
+inline void move_piece(_piece& p, _location start, _location end, _piece** board){
 	p = (p ^ start) ^ end;
-	board[start] = 0;
-	board[end] = p;
+	board[start] = &zero_piece;
+	board[end] = &p;
 }
 inline _piece create_piece (_location loc, _property type, _property color)
 	{ return (color << COLOR_SH) + (type << EIGHT_SH) + loc; }

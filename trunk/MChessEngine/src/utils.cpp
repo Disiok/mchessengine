@@ -54,9 +54,10 @@ string piecetype_to_string(_property type) {
 	case KING: return "K";
 	case PAWN: return "";
 	}
+	cout<<type<<endl;
 	return "Invalid Type";
 }
-string position::exemplify(){
+string position::display_board(){
 	string to_return = "<<     a   b   c   d   e   f   g   h \n";
 	to_return += "<<   ----+---+---+---+---+---+---+----\n";
 	bool stm = is_black_to_move(details);
@@ -66,6 +67,7 @@ string position::exemplify(){
 		to_return += "<< " + ss.str() + " |";
 		for (int j = 0; j < 8; j++){
 			_piece occupant = piece_search((i << 4) + j);
+			if (get_piece_type(occupant) == 0) cout << occupant << endl;
 			if (occupant == zero_piece) to_return += "   |";
 			else {
 				_property col = get_piece_color(occupant);

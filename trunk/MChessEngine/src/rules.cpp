@@ -560,24 +560,18 @@ vector <_move>* position::move_gen() {
 	return moves;
 }
 _piece& position::piece_search(_location square, _property map) {
-	_piece* search_map = (map == WHITE ? white_map : black_map);   // search one map only
-	for(int i = 0; i < 16; i++) {
-		if(search_map[i] == zero_piece) return zero_piece;
-		if(get_piece_location(search_map[i]) == square) return search_map[i];
-	}
-	return zero_piece;
+	_piece p;
+	if ((square & 0x88) == 0)
+		p = *board[square];
+	else
+		return zero_piece;
+	return get_piece_color(p) == map? p: zero_piece;
 }
 _piece& position::piece_search(_location square) {
-	// search white's then black's map
-	for(int i = 0; i < 16; i++) {
-		if(white_map[i] == zero_piece) break;
-		if(get_piece_location(white_map[i]) == square) return white_map [i];
-	}
-	for(int i = 0; i < 16; i++) {
-		if(black_map[i] == zero_piece) return zero_piece;
-		if(get_piece_location(black_map[i]) == square) return black_map [i];
-	}
-	return zero_piece;
+	if ((square & 0x88) == 0)
+		return *(board[square]);
+	else
+		return zero_piece;
 }
 bool position::is_in_check()  {
 	bool turn_col = is_black_to_move(details), opp_col = !turn_col, melee;

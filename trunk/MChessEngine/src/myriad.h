@@ -66,8 +66,7 @@ public:
 	//creates a fen string
 	operator string ();
 	//creates a graphical representation
-	string exemplify();
-
+	string display_board();
 	bool operator<(const position& rhs) const { return halfmove_clock < rhs.halfmove_clock; };
 	bool operator==(const position& rhs) const
 	{	// XXX: Replace with Zobrist comparison

@@ -50,7 +50,7 @@ int main() {
 			}
 			current_position = fen;
 			cout << "<< The position has been set to the following position: " << endl;
-			cout << current_position.exemplify() << endl;
+			cout << current_position.display_board() << endl;
 		} else if (!command_name.compare("perft")){
 			getline(ss, arguments, ' ');
 			int depth;
@@ -91,7 +91,7 @@ int main() {
 				cout << "<< Move Made: " << move_to_string(move, current_position) << endl;
 				current_position.make_move(move);
 				cout << "<< Resultant Position: " << endl << endl;
-				cout << current_position.exemplify();
+				cout << current_position.display_board();
 			} else cout << "<< An illegal move was entered!" << endl;
 		} else if (!command_name.compare("help")){
 			cout << "<< Currently implemented features include: " << endl;
@@ -140,7 +140,7 @@ int main() {
 			}
 			cout << type << endl;
 		} else if (!command_name.compare("display")){
-			cout << current_position.exemplify() << endl;
+			cout << current_position.display_board() << endl;
 		} else if (!command_name.compare("exit")){
 			cout << "Debug Utility Closing..." << endl;
 		} else cout << "<< Input not recognized. Input 'help' for the help menu." << endl;

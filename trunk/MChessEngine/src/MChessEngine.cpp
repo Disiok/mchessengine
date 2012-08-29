@@ -106,6 +106,7 @@ int main() {
 			cout << "<< \t perft <depth>-> calls perft to a specified depth." << endl;
 			cout << "<< \t perft <depth> (+s)-> all depths up to the specified depth." << endl;
 			cout << "<< \t perft <depth> (+d)-> displays debug numbers instead of time." << endl;
+			cout << "<< \t piece_at <location>-> prints the type of the piece at a location." << endl;
 			cout << "<< set_board <fenstring>-> sets the current position." << endl;
 		} else if (!command_name.compare("divide")){
 			getline(ss, arguments, ' ');
@@ -124,10 +125,20 @@ int main() {
 			int size = moves->size();
 			for (int i = 0; i < size; i++) {
 				if (i % 8 == 0) cout << endl << "<< ";
-				cout << move_to_string(moves->at(i), current_position) << ". ";
+				cout << move_to_string(moves->operator[](i), current_position) << ". ";
 			}
 			delete moves;
 			cout << endl << "<< ----------------move_gen End----------------" << endl;
+		} else if (command_name == "piece_at") {
+			getline(ss, arguments, ' ');
+			string type = piecetype_to_string(get_piece_type(current_position[string_to_location(arguments)]));
+			if (type == "Invalid Type") {
+				type = "No piece.";
+			}
+			else if(type == "") {
+				type = "pawn";
+			}
+			cout << type << endl;
 		} else if (!command_name.compare("display")){
 			cout << current_position.exemplify() << endl;
 		} else if (!command_name.compare("exit")){
@@ -145,12 +156,12 @@ void divide(int depth){
 	long total = 0;
 	_property detail = current_position.details;
 	for (int i = 0; i < n_moves; i++){
-		cout << "<< " << setw(9) << move_to_string(moves->at(i), current_position);
-		current_position += moves->at(i);
+		cout << "<< " << setw(9) << move_to_string(moves->operator[](i), current_position);
+		current_position += moves->operator[](i);
 		long nodes = perft_benchmark(depth - 1);
 		cout << setw(12) << nodes << "\t" << (string) current_position << endl;
 		total += nodes;
-		current_position -= _u(moves->at(i), detail);
+		current_position -= _u(moves->operator[](i), detail);
 	}
 	delete moves;
 	cout << "<< Number of branches divided: " << n_moves << endl;
@@ -199,9 +210,9 @@ long perft_benchmark(int depth){
 
 
 	for (int i = 0; i < n_moves; i++){
-		current_position += moves->at(i);
+		current_position += moves->operator[](i);
 		nodes += perft_benchmark(depth - 1);
-		current_position -= _u(moves->at(i), details);
+		current_position -= _u(moves->operator[](i), details);
 	}
 	delete moves;
 	return nodes;
@@ -234,9 +245,9 @@ long perft_debug (int depth, _move prev_move){
 	vector <_move>* moves = current_position.move_gen();
 	n_moves = moves->size();
 	for (int i = 0; i < n_moves; i++){
-		current_position.make_move(moves->at(i));
-		nodes += perft_debug(depth - 1, moves->at(i));
-		current_position.unmake_move(moves->at(i), details);
+		current_position.make_move(moves->operator[](i));
+		nodes += perft_debug(depth - 1, moves->operator[](i));
+		current_position.unmake_move(moves->operator[](i), details);
 	}
 	delete moves;
 	return nodes;

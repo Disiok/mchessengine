@@ -63,7 +63,7 @@ public:
 	//creates a fen string
 	operator string ();
 	//creates a graphical representation
-	string get_graphical();
+	string exemplify();
 
 	bool operator<(const position& rhs) const { return halfmove_clock < rhs.halfmove_clock; };
 	bool operator==(const position& rhs) const
@@ -85,15 +85,18 @@ public:
 		this->unmake_move(thePair.first, thePair.second);
 		return *this;
 	}
-	position operator+(const _move& m) {
+	position operator+(const _move& m) const {
 		position p = *this;
 		p += m;
 		return p;
 	}
-	position operator-(const _u& thePair) {
+	position operator-(const _u& thePair) const {
 		position p = *this;
 		p -= thePair;
 		return p;
+	}
+	_piece& operator[](_location l) {
+		return piece_search(l);
 	}
 
 private:

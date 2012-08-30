@@ -122,6 +122,7 @@ public:
 		size = (int)(pow((float)2, (float)bits));
 		hashes[size];
 		depth[size];
+		killer_moves = new _move[2];
 		bitstring_descript[size];
 		int temp = 0;
 		for(int i = 0; i < bits; ++i){
@@ -130,6 +131,7 @@ public:
 		MASK_INDEX = temp;
 	}
 	int size;
+	_move killer_moves;
 	static const long SCORE_RSH = 23;
 	static const long EXACT_RSH = 22;
 	static const long BOUND_RSH = 21;
@@ -141,6 +143,7 @@ public:
 	static const int MASK_BYTE = 0xff;
 	inline int getSize();
 	inline long get(long);
+	inline _move getKillers();
 	bool set(long, long, char, bool, bool, _move, bool);
 private:
 	int MASK_INDEX;
@@ -291,6 +294,49 @@ inline long Round::get(long hash){
 	if(hashes[index] == hash) return bitstring_descript [index];
 	return -1;
 }
+inline bool Round::set(long hash, long score, char level, bool exactValue, bool bound,
+						_move move, bool whiteMove){
+	bool placed = false;
+	if(exactValue && bound){
+		for(int i = 0; i < sizeof(killer_moves); i++){
+			if(killer_moves[i] == NULL){
+				killer_moves[i] = move;
+				placed = true;
+				break;
+			}
+		}
+		if (!placed){
+			for(int i = 1; i < sizeof(killer_moves); i++) killer_moves[i] = killer_moves[i-1];
+			killer_moves[0] = move;
+		}
+	}
+
+	int index = (int)(hash & (MASK_INDEX));
+	if (hashes[index] == 0 || depth[index] < level || (exactValue && bound)){
+		hashes[index] = hash;
+		depth[index] = level;
+		long string = 0;
+
+		string = score;
+		string = (string << 1) + (exactValue ? 1 : 0);
+		string = (string << 1) + (bound ? 1 : 0);
+		if (move != NULL){
+			string = (string << 8) + get_move_start(move);
+			string = (string << 8) + get_move_end(move);
+			string = (string << 4) + get_move_modifier(move);
+		} else string <<=20;
+
+		string = (string << 1) + (whiteMove ? 1 : 0);
+		bitstring_descript[index] = string;
+		return true;
+	}
+	return false;
+}
+
+inline _move Round::getKillers(){
+	return killer_moves;
+}
+
 // ======================End of Functions======================
 }
 

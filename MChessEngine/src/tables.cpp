@@ -1,86 +1,92 @@
 /*
- * tables.h
+ * tables.cpp
  * ============================================
  * (c) Spark Team, Aug 2012.
  * The Spark Team reserves all intellectual rights to the following source code.
  * The code may not be distributed or modified for personal use, except with the
  * express permission of a team member.
  * ============================================
- * Contains all the essential declarations for use in the Myriad engine.
+ * Successor to Round.java and Zobrist.java.
  */
 
 #include "myriad.h"
 
 namespace myriad{
+_zobrist create_initial_hash (position& p){
+	_zobrist initial_hash = 0;
+	for (int i = 0; i < 16; i++){
+		_piece r = p.white_map[i];
+		if (r == zero_piece) break;
+		/* Note: xor is it's own inverse, so xor in and xor out is the same thing. */
+		initial_hash = xor_out(initial_hash, get_piece_location(r), WHITE, get_piece_type(r));
+	}
+	for (int i = 0; i < 16; i++){
+		_piece r = p.black_map[i];
+		if (r == zero_piece) break;
+		/* See above note. */
+		initial_hash = xor_out(initial_hash, get_piece_location(r), BLACK, get_piece_type(r));
+	}
+	initial_hash = xor_castling(initial_hash, get_castle_right(p.details, WKS_CASTLE));
+	initial_hash = xor_castling(initial_hash, get_castle_right(p.details, WQS_CASTLE));
+	initial_hash = xor_castling(initial_hash, get_castle_right(p.details, BKS_CASTLE));
+	initial_hash = xor_castling(initial_hash, get_castle_right(p.details, BQS_CASTLE));
+	_location epsq = get_epsq(p.details);
+	if (epsq != 0) initial_hash ^= xor_values[EPSQ_HASH_OFFSET + x88to64(epsq)];
+	if (is_black_to_move(p.details)) initial_hash ^= xor_values[STM_INDEX];
+	return initial_hash;
+}
+round::round(int bits){
+	int size = 2 << bits;		/* 2 << bits raises 2 to the power of bits, no need for cast */
+	hashes = new _zobrist[size];
+	depth = new short[size];
+	information = new _zdata [size];
 
-	namespace Zobrist{
-		long multiplier[7] = {1, 2, 4, 6, 8, 10, 12};
-		long base_hash = 0x00000000;
-		int CASTLING_HASHES = 832;
-		char EN_PASSANT_ID = 6;
-
-		void init (){
-			srand(9001);
-			for(int i = 0; i < 836; ++i){
-				long data = rand();
-				bool unique = false;
-				while(!unique){
-					unique = true;
-					for(int k = 0; k < i; ++k){
-						if(data == hash_values[k]){
-							data = rand();
-							unique = false;
-						}
-					}
+	/* Generate the XOR bitstrings */
+	srand(9001);						/* Seed rand to induce predictable behavior. */
+	for(int i = 0; i < 837; ++i){
+		/* Ensure each XOR value is unique */
+		long data = rand();
+		bool unique = false;
+		while(!unique){
+			unique = true;
+			for(int k = 0; k < i; ++k){
+				if(data == xor_values[k]){
+					data = rand();
+					unique = false;
 				}
-				hash_values[i] = data;
 			}
 		}
-
-		long createinitialhash (vector<_piece> white, vector<_piece> black, vector<bool> castling_rights, char epsq){
-			long to_return = base_hash;
-			for(int i = 0; i < white.size(); ++i)
-				to_return ^= hash_values[getIndex(get_piece_location(white[i]), get_piece_type(white[i]), get_piece_color(white[i]))];
-			for(int i = 0; i < black.size(); ++i)
-				to_return ^= hash_values[getIndex(get_piece_location(black[i]), get_piece_type(black[i]), get_piece_color(black[i]))];
-			for(int i = 0; i < 4; ++i) if (castling_rights[i]) to_return ^= hash_values[CASTLING_HASHES + i];
-			if ((epsq & 0x88) == 0) to_return ^= hash_values[getIndex(epsq, EN_PASSANT_ID, WHITE)];
-			return to_return;
+		xor_values[i] = data;
+	}
+	/* Construct appropriate mask for index allocation. */
+	int temp = 0;
+	for(int i = 0; i < bits; ++i) temp |= 1 << i;
+	MASK_INDEX = temp;
+}
+/* Round functions */
+inline long round::get(_zobrist hash){
+	int index = (int)(hash & (MASK_INDEX));
+	if(hashes[index] == hash) return information [index];
+	return -1;
+}
+inline bool round::set(_zobrist hash, short score, short level, bool exact, bool bound, _move cutoff){
+	if(!exact && bound){
+		for(int i = 0; i < KILLER_SIZE; i++){
+			if(killer_moves[i] == 0){
+				killer_moves[i] = cutoff;
+				break;
+			}
 		}
-
-		long xorinout (long original_hash, char sq_in, char sq_out, char p_type, char color){
-			return original_hash^hash_values[getIndex(sq_in, p_type, color)]^hash_values[getIndex(sq_out, p_type, color)];
-		}
-
-		long xorout (long original_hash, char sq_out, char p_type, char color){
-			return original_hash^hash_values[getIndex(sq_out, p_type, color)];
-		}
-
-		long xorcastling (long original_hash, vector<bool> original_rights, vector<bool> new_rights){
-			long new_hash = original_hash;
-			for(int i = 0; i < 4; ++i)
-				if (original_rights[i] && !new_rights[i]) new_hash ^= hash_values[CASTLING_HASHES + i];
-			return new_hash;
-		}
-
-		long xorepsq (long original_hash, char original_epsq, char new_epsq){
-			long new_hash = original_hash;
-			if ((original_epsq & 0x88)==0) new_hash^=hash_values[getIndex(original_epsq, EN_PASSANT_ID, WHITE)];
-			if ((new_epsq & 0x88)==0) new_hash^= hash_values[getIndex(original_epsq, EN_PASSANT_ID, WHITE)];
-			return new_hash;
-		}
-
-		long xorpromotion (long original_hash, char position, char new_type, char color){
-			long new_hash = original_hash;
-			new_hash^=hash_values[getIndex(position, PAWN, color)];
-			new_hash^=hash_values[getIndex(position, new_type, color)];
-			return new_hash;
-		}
-
-		int getIndex(char pos, char id, char color){
-			int modifier = color == WHITE ? 0 : 64;
-			return modifier+multiplier[id]*(pos-((pos >> 4)*0x8));
-		}
-	};
-//int round::multiplers[8] = {0, 2, 4, 6, 8, 10, 12, 14};	/* p, n, b, r, q, k, epsq */
+		for(int i = 1; i < KILLER_SIZE; i++) killer_moves[i] = killer_moves[i-1];
+		killer_moves[0] = cutoff;
+	}
+	int index = (int)(hash & (MASK_INDEX));
+	if (hashes[index] == 0 || depth[index] < level){
+		hashes[index] = hash;
+		depth[index] = level;
+		information[index] = exact + (bound << 1) + (score << 2) + ((score < 0) << 17) + (cutoff << 18);
+		return true;
+	}
+	return false;
+}
 }

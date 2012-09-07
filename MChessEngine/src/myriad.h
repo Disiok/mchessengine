@@ -36,10 +36,10 @@ typedef unsigned int _move;			/* move format(LSB->MSB): 8 bits for start, 8 bits
 									   remaining bits for descriptor. */
 typedef unsigned char _location;	/* standard 0x88 location square. */
 typedef unsigned long _zobrist;		/* Zobrist hash key */
-typedef unsigned long _zdata;		/* Data to store into Zobrist, XXX: organization unknown */
-
-
-typedef pair<_move,_property> _u; //"undo pair", used with operator-, operator-=
+typedef unsigned long _zdata;		/* Data to store into Zobrist. Format (LSB-> MSB) 1 bit for exact,
+ 	 	 	 	 	 	 	 	 	   1 bit for bound, 15 bits for score, 1 bit for sign of score,
+ 	 	 	 	 	 	 	 	 	   remaining bits for cutoff move.*/
+typedef pair<_move,_property> _u; 	/*"undo pair", used with operator-, operator-= */
 // ======================End of Typedefs=====================
 // ======================Classes======================
 class position{
@@ -49,59 +49,23 @@ public:
 	_piece black_map[16];
 	_property details;		/* LSB->MSB, 1 bit for stm, 7 bits for plycount, 4 bits for cstl. rights.,
 							   8 bits for position of pawn capturable by en passant */
-	unsigned short halfmove_clock;
+	_zobrist hash_key;
+	unsigned short fullmove_clock;
 
 	position();
 	position(string fen);
-	//Copy constructor
-
-	virtual ~position() {}
 
 	bool is_in_check ();
 	void make_move(_move);
 	_piece& piece_search(_location);					/* When search map is unknown */
 	_piece& piece_search(_location, _property);			/* WHITE for white, BLACK for black */
 	vector<_move>* move_gen();
-	void unmake_move (_move previous_move, _property prev_details);
-
-	//creates a fen string
-	operator string ();
-	//creates a graphical representation
-	string display_board();
-	bool operator<(const position& rhs) const { return halfmove_clock < rhs.halfmove_clock; };
-	bool operator==(const position& rhs) const
-	{	// XXX: Replace with Zobrist comparison
-		return equal(black_map, black_map + 15*sizeof(_piece), rhs.black_map)
-				&& equal(white_map, white_map + 15*sizeof(_piece), rhs.white_map)
-				&& (details&1) == (rhs.details&1)
-				&& (details >> 8) == (rhs.details >> 8);
-				//&& halfmove_clock == rhs.halfmove_clock
-				//&& is_in_check() == rhs.is_in_check();
-	}
-	position& operator+=(const _move& m) {
-		this->make_move(m);
-		return *this;
-	}
-
-	//Call thus: position -= pair<_move, _property>(m,d)
-	position& operator-=(const _u& thePair) {
-		this->unmake_move(thePair.first, thePair.second);
-		return *this;
-	}
-	position operator+(const _move& m) const {
-		position p = *this;
-		p += m;
-		return p;
-	}
-	position operator-(const _u& thePair) const {
-		position p = *this;
-		p -= thePair;
-		return p;
-	}
-	_piece& operator[](_location l) {
-		return piece_search(l);
-	}
-
+	void unmake_move (_move previous_move, _property prev_details, _zobrist prev_hash);
+	operator string ();									/* Converts to FEN String */
+	string display_board();								/* Converts to a string for use in console gfx */
+	bool operator<(const position& rhs) const { return fullmove_clock < rhs.fullmove_clock; };
+	bool operator==(const position& rhs) const{	return hash_key == rhs.hash_key;	}
+	_piece& operator[](_location l) { 	return piece_search(l); }
 private:
 	inline void continuous_gen (_property, _location, vector<_move> &, _property, char);
 	inline _piece* create_guardian_map (_property, _property);
@@ -113,64 +77,20 @@ private:
 	inline void pawn_capture_reach (vector <_piece> &, _location, _property);
 	inline vector<_piece> reachable_pieces(_location, _property);
 	inline void single_gen (_property, _location, vector<_move> &, _property, char);
-	string get_2d();
 };
-
-class Round{
+class round {
 public:
-	Round(int bits){
-		size = (int)(pow((float)2, (float)bits));
-		hashes[size];
-		depth[size];
-		killer_moves = new _move[2];
-		bitstring_descript[size];
-		int temp = 0;
-		for(int i = 0; i < bits; ++i){
-			temp |= 1 << i;
-		}
-		MASK_INDEX = temp;
-	}
-	int size;
-	_move killer_moves;
-	static const long SCORE_RSH = 23;
-	static const long EXACT_RSH = 22;
-	static const long BOUND_RSH = 21;
-	static const long STARTSQ_RSH = 13;
-	static const long ENDSQ_RSH = 5;
-	static const long MODIFIER_RSH = 1;
-	static const int MASK_BIT = 1;
-	static const int MASK_4BIT = 0xf;
-	static const int MASK_BYTE = 0xff;
-	inline int getSize();
-	inline long get(long);
-	inline _move getKillers();
-	bool set(long, long, char, bool, bool, _move, bool);
+	static const int KILLER_SIZE = 2;
+	round (int bit_size);
+	_move killer_moves[KILLER_SIZE];
+
+	long get(_zobrist);
+	bool set(_zobrist, short, short, bool, bool, _move);
 private:
 	int MASK_INDEX;
-	vector<long> bitstring_descript;
-	vector<long> hashes;
-	vector<char> depth;
-};
-
-namespace Zobrist{
-	/*long hash_values[836];
-	int multiplier[7];
-	long base_hash;
-	int CASTLING_HASHES;
-	char EN_PASSENT_ID;*/
-	extern long hash_values[836];
-	extern long multiplier[7];
-	extern long base_hash;
-	extern int CASTLING_HASHES;
-	extern char EN_PASSANT_ID;
-	void init ();
-	long createinitialhash (vector<_piece>, vector<_piece>, vector<bool>, char);
-	long xorinout (long, char, char, char, char);
-	long xorout (long, char, char, char);
-	long xorcastling (long, vector<bool>, vector<bool>);
-	long xorepsq (long, char, char);
-	long xorpromotion (long, char, char, char);
-	int getIndex(char, char, char);
+	_zdata *information;
+	_zobrist *hashes;
+	short *depth;
 };
 // ======================End of Classes======================
 // ======================Constants=====================
@@ -230,8 +150,27 @@ const char BLACK_PAWN_ATTACK[] = {DOWN_RIGHT, DOWN_LEFT};
 const _property start_position = 0xf00;		/* detail value at startposition */
 extern _piece zero_piece; 					/* WARNING: g++ will not allow this to be declared const,
  	 	 	 	 	 	 	 	 	 	 	 * but DO NOT CHANGE this value. */
+/* Zobrist hash property values */
+const int multiplier [] = {0, 2, 4, 6, 8, 10};
+const int CASTLE_HASH_OFFSET = 832;
+const int EPSQ_HASH_OFFSET = 768;
+const int STM_INDEX = 836;
+long xor_values [837];		/* The value to xor in for each property on the board, i.e., knight on f3 */
 // ======================End of Constants======================
 // ======================Functions======================
+/* utility / debug functions */
+string piece_to_string (_piece p);
+string move_to_string (_move m, position &p);
+string piecetype_to_string (_property type);
+inline string location_to_string (_location sq){
+	stringstream ss;
+	ss << (1 + (sq>> FOUR_SH));
+	return string() + (char)('a' + (sq & TRIPLET_MASK)) + ss.str();
+}
+inline _location string_to_location(string location) {	return (((location[1] - '1') << 4) + (location[0] - 'a'));}
+inline _location x88to64(_location loc)	{	return (loc >> FOUR_SH) * 8 + (loc & NIBBLE_MASK);	}
+inline _location d64tox88(_location loc_64)	{	return ((loc_64 / 10) << FOUR_SH) + (loc_64 % 10);	}
+
 /* _piece accessors and mutators */
 inline _location get_piece_location(_piece p){ return p & LOCATION_MASK; }
 inline _property get_piece_color(_piece p){ return p >> COLOR_SH; }
@@ -256,6 +195,24 @@ inline _move create_move (_location start, _location end, _property modifier = 0
 inline _property create_capture_mod (_property attacker, _property victim, _property promote = 0)
 	{	return (promote << EIGHT_SH) + (victim << FOUR_SH) + (attacker); }
 
+/* Zobrist hash manipulators */
+inline int get_index(_location loc, _property type, _property color)
+	/* Note: type - 1 since piece types start at 1, only useful for ordinary piece moves. */
+	{	return 136 * (multiplier[type - 1] + (color ? 1 : 0)) + x88to64(loc);	}
+_zobrist create_initial_hash (position &);
+inline _zobrist xor_in_out (_zobrist old, _location prev_loc, _location new_loc, _property col, _property type)
+	{	return old^xor_values[get_index(prev_loc, type, col)]^xor_values[get_index(new_loc, type, col)];	}
+inline _zobrist xor_out (_zobrist old, _location prev_loc, _property col, _property type)
+	{	return old^xor_values[get_index(prev_loc, type, col)];	}
+inline _zobrist xor_castling (_zobrist old, _property castling_modifier)
+	/* Note: castling modifier start from 1. */
+	{	return old^xor_values[CASTLE_HASH_OFFSET + castling_modifier - 1];	}
+inline _zobrist xor_epsq (_zobrist old, _location prev_epsq, _location new_epsq)
+	{return old^xor_values[EPSQ_HASH_OFFSET + x88to64(prev_epsq)]^xor_values[EPSQ_HASH_OFFSET + x88to64(new_epsq)];}
+inline _zobrist xor_promotion (_zobrist old, _location prev_loc, _location new_loc, _property col, _property promote)
+	/* Note: promote_to refers to the piece that is being promoted to, not the modifier */
+	{	return old^xor_values[get_index(prev_loc, PAWN, col)]^xor_values[get_index(new_loc, promote, col)];}
+
 /* detail _property accessors and mutators */
 inline bool is_black_to_move (_property detail) {	return detail & 1;	}
 inline _property get_epsq (_property detail) {	return detail >> EP_SH;	}
@@ -264,79 +221,13 @@ inline _property set_epsq (_property detail, _location epsq) /* assuming clear_e
 	{	return detail + (epsq << EP_SH);	}
 inline _property increase_ply_count (_property detail) {	return (detail ^ 1) + 2;	}
 inline _property reset_ply_count (_property detail) {	return detail & (~0xfe);	}
-inline _property revoke_castle_right (_property detail, _property modifier)
-	{	return detail & (~(1 << (modifier + 7)));	}
+inline int get_plycount(_property detail) {	return (detail >> 1) & 0x7f;	}
 inline _property get_castle_right (_property detail, _property modifier)
 	{	return (detail >> (modifier + 7)) & 1; }
-inline int get_plycount(_property detail) {	return (detail >> 1) & 0x7f;	}
-
-/* utility / debug functions */
-string piece_to_string (_piece p);
-string move_to_string (_move m, position &p);
-string piecetype_to_string (_property type);
-string piecetype_to_string_figurine(_property type, _property color);
-inline string location_to_string (_location sq){
-	stringstream ss;
-	ss << (1 + (sq>> FOUR_SH));
-	return string() + (char)('a' + (sq & TRIPLET_MASK)) + ss.str();
+inline _property revoke_castle_right (_property detail, _zobrist& old_key, _property modifier){
+	old_key = xor_castling(old_key, modifier);
+	return detail & (~(1 << (modifier + 7)));
 }
-inline _location string_to_location(string location){
-	return (((location[1] - '1') << 4) + (location[0] - 'a'));
-}
-
-
-/* Round functions */
-inline int Round::getSize(){
-	return size;
-}
-inline long Round::get(long hash){
-	int index = (int)(hash & (MASK_INDEX));
-	if(hashes[index] == hash) return bitstring_descript [index];
-	return -1;
-}
-inline bool Round::set(long hash, long score, char level, bool exactValue, bool bound,
-						_move move, bool whiteMove){
-	bool placed = false;
-	if(exactValue && bound){
-		for(int i = 0; i < sizeof(killer_moves); i++){
-			if(killer_moves[i] == NULL){
-				killer_moves[i] = move;
-				placed = true;
-				break;
-			}
-		}
-		if (!placed){
-			for(int i = 1; i < sizeof(killer_moves); i++) killer_moves[i] = killer_moves[i-1];
-			killer_moves[0] = move;
-		}
-	}
-
-	int index = (int)(hash & (MASK_INDEX));
-	if (hashes[index] == 0 || depth[index] < level || (exactValue && bound)){
-		hashes[index] = hash;
-		depth[index] = level;
-		long string = 0;
-
-		string = score;
-		string = (string << 1) + (exactValue ? 1 : 0);
-		string = (string << 1) + (bound ? 1 : 0);
-		if (move != NULL){
-			string = (string << 8) + get_move_start(move);
-			string = (string << 8) + get_move_end(move);
-			string = (string << 4) + get_move_modifier(move);
-		} else string <<=20;
-
-		string = (string << 1) + (whiteMove ? 1 : 0);
-		bitstring_descript[index] = string;
-		return true;
-	}
-	return false;
-}
-
-inline _move Round::getKillers(){
-	return killer_moves;
-}
-
 // ======================End of Functions======================
 }
 

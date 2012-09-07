@@ -15,6 +15,7 @@ using namespace myriad;
 using namespace std;
 
 position current_position;
+myriad::round table(1);					/* Do not take up so much memory! */
 
 int captures = 0, mates = 0, checks = 0, ep = 0, castle = 0, promo = 0;
 
@@ -29,7 +30,7 @@ int main() {
 	cout << "**Utility last updated: 7 Aug. 2012**" << endl << endl;
 	cout << "Input 'help' for help menu." << endl;
 	cout << "-------------------------------" << endl;
-	cout << left;	// left align formatting
+	cout << left;	/* left align formatting */
 
 	string input;
 	do {
@@ -129,25 +130,13 @@ int main() {
 			}
 			delete moves;
 			cout << endl << "<< ----------------move_gen End----------------" << endl;
-		} else if (command_name == "piece_at") {
-			getline(ss, arguments, ' ');
-			string type = piecetype_to_string(get_piece_type(current_position[string_to_location(arguments)]));
-			if (type == "Invalid Type") {
-				type = "No piece.";
-			}
-			else if(type == "") {
-				type = "pawn";
-			}
-			cout << type << endl;
 		} else if (!command_name.compare("display")){
 			cout << current_position.display_board() << endl;
 		} else if (!command_name.compare("exit")){
 			cout << "Debug Utility Closing..." << endl;
 		} else cout << "<< Input not recognized. Input 'help' for the help menu." << endl;
-
 		cout << endl;
-		std::cout << "Looped in " << fixed
-			<< 1000.*(clock() - startTime)/CLOCKS_PER_SEC << "ms." << endl;
+		std::cout << "Looped in " << fixed << 1000.*(clock() - startTime)/CLOCKS_PER_SEC << "ms." << endl;
 	} while (input.compare("exit"));
 }
 void divide(int depth){
@@ -155,13 +144,14 @@ void divide(int depth){
 	int n_moves = moves->size();
 	long total = 0;
 	_property detail = current_position.details;
+	_zobrist hash = current_position.hash_key;
 	for (int i = 0; i < n_moves; i++){
 		cout << "<< " << setw(9) << move_to_string(moves->operator[](i), current_position);
-		current_position += moves->operator[](i);
+		current_position.make_move(moves->operator[](i));
 		long nodes = perft_benchmark(depth - 1);
 		cout << setw(12) << nodes << "\t" << (string) current_position << endl;
 		total += nodes;
-		current_position -= _u(moves->operator[](i), detail);
+		current_position.unmake_move(moves->operator[](i), detail, hash);
 	}
 	delete moves;
 	cout << "<< Number of branches divided: " << n_moves << endl;
@@ -194,25 +184,19 @@ void perft (int depth, bool serial, bool debug){
 long perft_benchmark(int depth){
 	if (depth == 1) {
 		vector<_move>* moves = current_position.move_gen();
-
-		/*for (vector<_move>::iterator i = moves->begin();
-				i < moves->end(); ++i)
-				cout << move_to_string(*i,current_position) << "|";
-		cout << endl;*/
 		long size = moves->size();
 		delete moves;
 		return size;
 	}
 	int nodes = 0, n_moves;
 	_property details = current_position.details;
+	_zobrist hash = current_position.hash_key;
 	vector <_move>* moves = current_position.move_gen();
 	n_moves = moves->size();
-
-
 	for (int i = 0; i < n_moves; i++){
-		current_position += moves->operator[](i);
+		current_position.make_move(moves->operator[](i));
 		nodes += perft_benchmark(depth - 1);
-		current_position -= _u(moves->operator[](i), details);
+		current_position.unmake_move(moves->operator[](i), details, hash);
 	}
 	delete moves;
 	return nodes;
@@ -222,9 +206,7 @@ long perft_debug (int depth, _move prev_move){
 		_property modifier = get_move_modifier(prev_move);
 		if (current_position.is_in_check()) checks ++;
 		vector<_move>* moves = current_position.move_gen();
-		if (moves->size() == 0) {
-			mates++;
-		}
+		if (moves->size() == 0) mates++;
 		delete moves;
 		switch (modifier){
 		case WKS_CASTLE: case BKS_CASTLE: case WQS_CASTLE: case BQS_CASTLE: castle++; break;
@@ -242,12 +224,13 @@ long perft_debug (int depth, _move prev_move){
 	}
 	int nodes = 0, n_moves;
 	_property details = current_position.details;
+	_zobrist hash = current_position.hash_key;
 	vector <_move>* moves = current_position.move_gen();
 	n_moves = moves->size();
 	for (int i = 0; i < n_moves; i++){
 		current_position.make_move(moves->operator[](i));
 		nodes += perft_debug(depth - 1, moves->operator[](i));
-		current_position.unmake_move(moves->operator[](i), details);
+		current_position.unmake_move(moves->operator[](i), details, hash);
 	}
 	delete moves;
 	return nodes;

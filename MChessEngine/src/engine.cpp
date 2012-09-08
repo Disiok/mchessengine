@@ -14,8 +14,9 @@
 using namespace myriad;
 using namespace std;
 
-position current_position;
+
 myriad::round table(1);					/* Do not take up so much memory! */
+position current_position;
 
 int captures = 0, mates = 0, checks = 0, ep = 0, castle = 0, promo = 0;
 

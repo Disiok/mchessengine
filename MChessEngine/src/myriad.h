@@ -92,6 +92,15 @@ private:
 	_zobrist *hashes;
 	short *depth;
 };
+
+class pine {
+	public:
+		static const round* table;
+
+		pine(const position& p);
+	private:
+
+};
 // ======================End of Classes======================
 // ======================Constants=====================
 /* Piece constants */
@@ -155,7 +164,7 @@ const int multiplier [] = {0, 2, 4, 6, 8, 10};
 const int CASTLE_HASH_OFFSET = 832;
 const int EPSQ_HASH_OFFSET = 768;
 const int STM_INDEX = 836;
-long xor_values [837];		/* The value to xor in for each property on the board, i.e., knight on f3 */
+extern long xor_values [837];		/* The value to xor in for each property on the board, i.e., knight on f3 */
 // ======================End of Constants======================
 // ======================Functions======================
 /* utility / debug functions */
@@ -198,7 +207,7 @@ inline _property create_capture_mod (_property attacker, _property victim, _prop
 /* Zobrist hash manipulators */
 inline int get_index(_location loc, _property type, _property color)
 	/* Note: type - 1 since piece types start at 1, only useful for ordinary piece moves. */
-	{	return 136 * (multiplier[type - 1] + (color ? 1 : 0)) + x88to64(loc);	}
+	{	return 128 * (multiplier[type - 1] + (color)) + x88to64(loc);	}
 _zobrist create_initial_hash (position &);
 inline _zobrist xor_in_out (_zobrist old, _location prev_loc, _location new_loc, _property col, _property type)
 	{	return old^xor_values[get_index(prev_loc, type, col)]^xor_values[get_index(new_loc, type, col)];	}

@@ -14,6 +14,7 @@
 namespace myriad {
 /* Zero or null piece definition */
 _piece zero_piece = 0;
+long  xor_values[837];
 
 position::position() : details(start_position), fullmove_clock(0) {
 	for (int i = 0; i < 0x88 ; ++i)	board[i]=&zero_piece;
@@ -63,7 +64,7 @@ position::position() : details(start_position), fullmove_clock(0) {
 void position::make_move(_move m) {
 	bool is_black = is_black_to_move(details);
 	_piece *map = is_black ? black_map : white_map;
-	_property modifier = get_move_modifier(m), type;
+	_property modifier = get_move_modifier(m);
 	_location start = get_move_start(m), end = get_move_end(m), king;
 	_piece& moving = piece_search (start, is_black);
 
@@ -72,6 +73,8 @@ void position::make_move(_move m) {
 	details = clear_epsq (details);
 	details = increase_ply_count (details);		/* switch side to move, ++ plycount */
 	fullmove_clock++;
+
+	_property type;
 
 	switch (modifier){
 	case 0:
@@ -578,8 +581,10 @@ _piece& position::piece_search(_location square, _property map) {
 	return get_piece_color(p) == map? p: zero_piece;
 }
 _piece& position::piece_search(_location square) {
-	if ((square & 0x88) == 0)
+	if ((square & 0x88) == 0) {
+		//cout << location_to_string(get_piece_location(*(board[square]))) << endl;
 		return *(board[square]);
+	}
 	else
 		return zero_piece;
 }

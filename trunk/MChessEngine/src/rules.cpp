@@ -14,43 +14,44 @@
 namespace myriad {
 /* Zero or null piece definition */
 _piece zero_piece = 0;
-long  xor_values[837];
+long  xor_values[849];
 
 position::position() : details(start_position), fullmove_clock(0) {
-	for (int i = 0; i < 0x88 ; ++i)	board[i]=&zero_piece;
+	for (int i = 0; i < 0x88 ; ++i)	board[i] = &zero_piece;
 	/* king is always first */
 	white_map[0] = create_piece(0x04, KING, WHITE);
-	board[0x04]= &white_map[0];
 	black_map[0] = create_piece(0x74, KING, BLACK);
-	board[0x74]= &black_map[0];
 	/* Initialize other pieces */
 	white_map[1] = create_piece(0x00, ROOK, WHITE);
-	board[0x00]= &white_map[1];
 	black_map[1] = create_piece(0x70, ROOK, BLACK);
-	board[0x70]= &black_map[1];
 	white_map[2] = create_piece(0x01, KNIGHT, WHITE);
-	board[0x01]= &white_map[2];
 	black_map[2] = create_piece(0x71, KNIGHT, BLACK);
-	board[0x71]= &black_map[2];
 	white_map[3] = create_piece(0x02, BISHOP, WHITE);
-	board[0x02]= &white_map[3];
 	black_map[3] = create_piece(0x72, BISHOP, BLACK);
-	board[0x72]= &black_map[3];
 	white_map[4] = create_piece(0x03, QUEEN, WHITE);
-	board[0x03]= &white_map[4];
 	black_map[4] = create_piece(0x73, QUEEN, BLACK);
-	board[0x73]= &black_map[4];
 	white_map[5] = create_piece(0x05, BISHOP, WHITE);
-	board[0x05]= &white_map[5];
 	black_map[5] = create_piece(0x75, BISHOP, BLACK);
-	board[0x75]= &black_map[5];
 	white_map[6] = create_piece(0x06, KNIGHT, WHITE);
-	board[0x06]= &white_map[6];
 	black_map[6] = create_piece(0x76, KNIGHT, BLACK);
-	board[0x76]= &black_map[6];
 	white_map[7] = create_piece(0x07, ROOK, WHITE);
-	board[0x07]= &white_map[7];
 	black_map[7] = create_piece(0x77, ROOK, BLACK);
+	/* Put it all into the board */
+	board[0x04]= &white_map[0];
+	board[0x74]= &black_map[0];
+	board[0x00]= &white_map[1];
+	board[0x70]= &black_map[1];
+	board[0x01]= &white_map[2];
+	board[0x71]= &black_map[2];
+	board[0x02]= &white_map[3];
+	board[0x72]= &black_map[3];
+	board[0x03]= &white_map[4];
+	board[0x73]= &black_map[4];
+	board[0x05]= &white_map[5];
+	board[0x75]= &black_map[5];
+	board[0x06]= &white_map[6];
+	board[0x76]= &black_map[6];
+	board[0x07]= &white_map[7];
 	board[0x77]= &black_map[7];
 	/* Fill second rank with pawns */
 	for(int i = 0; i < 8; ++i) {
@@ -64,7 +65,7 @@ position::position() : details(start_position), fullmove_clock(0) {
 void position::make_move(_move m) {
 	bool is_black = is_black_to_move(details);
 	_piece *map = is_black ? black_map : white_map;
-	_property modifier = get_move_modifier(m);
+	_property modifier = get_move_modifier(m), castl_rights = get_castle_four(details), type;
 	_location start = get_move_start(m), end = get_move_end(m), king;
 	_piece& moving = piece_search (start, is_black);
 
@@ -74,52 +75,46 @@ void position::make_move(_move m) {
 	details = increase_ply_count (details);		/* switch side to move, ++ plycount */
 	fullmove_clock++;
 
-	_property type;
-
 	switch (modifier){
 	case 0:
 		move_piece(moving, start, end, board);
 		if ((type = get_piece_type(moving)) == ROOK){
 			switch (start){
-			case 0x00: details = revoke_castle_right(details, hash_key, WQS_CASTLE); break;
-			case 0x07: details = revoke_castle_right(details, hash_key, WKS_CASTLE); break;
-			case 0x70: details = revoke_castle_right(details, hash_key, BQS_CASTLE); break;
-			case 0x77: details = revoke_castle_right(details, hash_key, BKS_CASTLE); break;
+			case 0x00: details = revoke_castle_right(details, WQS_CASTLE); break;
+			case 0x07: details = revoke_castle_right(details, WKS_CASTLE); break;
+			case 0x70: details = revoke_castle_right(details, BQS_CASTLE); break;
+			case 0x77: details = revoke_castle_right(details, BKS_CASTLE); break;
 			}
 		}
 		/*Revoke castling rights due to a king move */
 		else if (type == KING) details &= is_black ? 0x003ff : 0x00cff;
 		else if (type == PAWN) details = reset_ply_count (details);
 		switch (end){
-			case 0x00: details = revoke_castle_right(details, hash_key, WQS_CASTLE); break;
-			case 0x07: details = revoke_castle_right(details, hash_key, WKS_CASTLE); break;
-			case 0x70: details = revoke_castle_right(details, hash_key, BQS_CASTLE); break;
-			case 0x77: details = revoke_castle_right(details, hash_key, BKS_CASTLE); break;
+			case 0x00: details = revoke_castle_right(details, WQS_CASTLE); break;
+			case 0x07: details = revoke_castle_right(details, WKS_CASTLE); break;
+			case 0x70: details = revoke_castle_right(details, BQS_CASTLE); break;
+			case 0x77: details = revoke_castle_right(details, BKS_CASTLE); break;
 		}
 		hash_key = xor_in_out (hash_key, start, end, is_black, type);
-		return;
+		break;
 	case WKS_CASTLE: case BKS_CASTLE:
 		move_piece(moving, start, end, board);
 		king = get_piece_location(map[0]);
-		move_piece(map[0],king, king + 0x02, board);
+		move_piece(map[0], king, king + 0x02, board);
 		details &= is_black ? 0x003ff : 0x00cff;		/* revoke both castling rights */
-		hash_key = xor_castling (hash_key, WKS_CASTLE + (is_black ? 2 : 0));
-		hash_key = xor_castling (hash_key, WQS_CASTLE + (is_black ? 2 : 0));
-		return;
+		break;
 	case WQS_CASTLE: case BQS_CASTLE:
 		move_piece(moving, start, end, board);
 		king = get_piece_location(map[0]);
 		move_piece(map[0],king, king - 0x02, board);
 		details &= is_black ? 0x003ff : 0x00cff;		/* revoke both castling rights */
-		hash_key = xor_castling (hash_key, WKS_CASTLE + (is_black ? 2 : 0));
-		hash_key = xor_castling (hash_key, WQS_CASTLE + (is_black ? 2 : 0));
-		return;
+		break;
 	case DOUBLE_ADVANCE:
 		move_piece(moving, start, end, board);
 		details = set_epsq(details, end);
 		hash_key = xor_epsq(hash_key, 0x00, end);
-		hash_key = xor_in_out(hash_key, start, end, is_black, type);
-		return;
+		hash_key = xor_in_out(hash_key, start, end, is_black, PAWN);
+		break;
 	case EN_PASSANT:
 		move_piece(moving, start, end + (is_black ? DOWN : UP), board);
 		kill (piece_search(end, !is_black), !is_black); /* assuming the end square is the capturable pawn */
@@ -133,24 +128,20 @@ void position::make_move(_move m) {
 			board[end] = &moving;
 			hash_key = xor_promotion(hash_key, start, end, is_black, promote_to);
 		} else {
-			move_piece(moving, start, end, board);
 			_piece &captured = piece_search(end, !is_black);
 			hash_key = xor_out(hash_key, end, !is_black, get_piece_type(captured));
 			kill(captured, !is_black);
+			move_piece(moving, start, end, board);
 			_property promote_to = modifier >> EIGHT_SH;
 			if (promote_to == 0){
 				if ((type = get_piece_type(moving)) == ROOK){
 					switch (start){
-					case 0x00: details = revoke_castle_right(details, hash_key, WQS_CASTLE); break;
-					case 0x07: details = revoke_castle_right(details, hash_key, WKS_CASTLE); break;
-					case 0x70: details = revoke_castle_right(details, hash_key, BQS_CASTLE); break;
-					case 0x77: details = revoke_castle_right(details, hash_key, BKS_CASTLE); break;
+					case 0x00: details = revoke_castle_right(details, WQS_CASTLE); break;
+					case 0x07: details = revoke_castle_right(details, WKS_CASTLE); break;
+					case 0x70: details = revoke_castle_right(details, BQS_CASTLE); break;
+					case 0x77: details = revoke_castle_right(details, BKS_CASTLE); break;
 					}
-				} else if (type == KING){
-					details &= is_black ? 0x003ff : 0x00cff;
-					hash_key = xor_castling (hash_key, WKS_CASTLE + (is_black ? 2 : 0));
-					hash_key = xor_castling (hash_key, WQS_CASTLE + (is_black ? 2 : 0));
-				}
+				} else if (type == KING) details &= is_black ? 0x003ff : 0x00cff;
 				hash_key = xor_in_out(hash_key, start, end, is_black, type);
 			} else {
 				moving = moving ^ 0x100 ^ (promote_to << 8);
@@ -158,14 +149,15 @@ void position::make_move(_move m) {
 				hash_key = xor_promotion(hash_key, start, end, is_black, promote_to);
 			}
 			switch (end){
-				case 0x00: details = revoke_castle_right(details, hash_key, WQS_CASTLE); break;
-				case 0x07: details = revoke_castle_right(details, hash_key, WKS_CASTLE); break;
-				case 0x70: details = revoke_castle_right(details, hash_key, BQS_CASTLE); break;
-				case 0x77: details = revoke_castle_right(details, hash_key, BKS_CASTLE); break;
+				case 0x00: details = revoke_castle_right(details, WQS_CASTLE); break;
+				case 0x07: details = revoke_castle_right(details, WKS_CASTLE); break;
+				case 0x70: details = revoke_castle_right(details, BQS_CASTLE); break;
+				case 0x77: details = revoke_castle_right(details, BKS_CASTLE); break;
 			}
 		}
 		break;
 	}
+	hash_key = xor_castling(hash_key, get_castle_four(details), castl_rights);
 }
 vector <_move>* position::move_gen() {
 	_property turn_col = is_black_to_move(details), opp_col = turn_col ^ 1;
@@ -573,20 +565,14 @@ vector <_move>* position::move_gen() {
 	return moves;
 }
 _piece& position::piece_search(_location square, _property map) {
-	_piece p;
-	if ((square & 0x88) == 0)
-		p = *board[square];
-	else
-		return zero_piece;
-	return get_piece_color(p) == map? p: zero_piece;
+	_piece *p;
+	if ((square & 0x88) == 0) p = board[square];
+	else return zero_piece;
+	return get_piece_color(*p) == map ? *p : zero_piece;
 }
 _piece& position::piece_search(_location square) {
-	if ((square & 0x88) == 0) {
-		//cout << location_to_string(get_piece_location(*(board[square]))) << endl;
-		return *(board[square]);
-	}
-	else
-		return zero_piece;
+	if ((square & 0x88) == 0) return *(board[square]);
+	else return zero_piece;
 }
 bool position::is_in_check()  {
 	bool turn_col = is_black_to_move(details), opp_col = !turn_col, melee;
@@ -636,10 +622,8 @@ void position::unmake_move (_move previous_move, _property prev_details, _zobris
 	_property modifier = get_move_modifier (previous_move), turn_col = details & 1, opp_col = turn_col ^ 1,
 			victim_type;
 	_location start = get_move_start (previous_move), end = get_move_end(previous_move), temp;
-	_piece* turn_map = turn_col ? black_map : white_map;
-	_piece* opp_map = turn_col ? white_map : black_map;
-	_piece* captured;
-	_piece* ep_moved;
+	_piece* turn_map = turn_col ? black_map : white_map, *opp_map = turn_col ? white_map : black_map, *captured,
+			*ep_moved;
 	_piece& moved = piece_search(end, turn_col);
 
 	fullmove_clock--;
@@ -648,7 +632,7 @@ void position::unmake_move (_move previous_move, _property prev_details, _zobris
 	case WKS_CASTLE: case BKS_CASTLE:
 		move_piece(moved, end, start, board);
 		temp = get_piece_location(turn_map[0]);
-		move_piece(turn_map[0],temp, temp - 0x02, board);
+		move_piece(turn_map[0], temp, temp - 0x02, board);
 		break;
 	case WQS_CASTLE: case BQS_CASTLE:
 		move_piece(moved, end, start, board);
@@ -670,17 +654,16 @@ void position::unmake_move (_move previous_move, _property prev_details, _zobris
 			moved = create_piece (start, PAWN, turn_col);
 			board[end] = &zero_piece;
 			board[start] = &moved;
-		}
-		else {
-			victim_type = (modifier >> FOUR_SH) & NIBBLE_MASK;
-			captured = &opp_map[get_last_index(opp_map) + 1];
-			*captured = create_piece(end, victim_type, opp_col);
-			board[end] = captured;
+		} else {
 			if ((modifier >> EIGHT_SH) == 0) move_piece (moved, end, start, board);
 			else {
 				moved = create_piece(start, PAWN, turn_col);
 				board[start] = &moved;
 			}
+			victim_type = (modifier >> FOUR_SH) & NIBBLE_MASK;
+			captured = &opp_map[get_last_index(opp_map) + 1];
+			*captured = create_piece(end, victim_type, opp_col);
+			board[end] = captured;
 		}
 		break;
 	}
@@ -821,6 +804,7 @@ inline void position::kill(_piece& victim, _property victim_map) {
 	_piece* search_map = victim_map ? black_map : white_map;
 	_piece& to_swap = search_map[get_last_index(search_map)];
 	victim = to_swap;
+	board[get_piece_location(to_swap)] = &victim;
 	to_swap = zero_piece;
 }
 inline int position::get_last_index (_piece* map){

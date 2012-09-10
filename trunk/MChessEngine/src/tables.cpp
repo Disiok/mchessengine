@@ -26,12 +26,8 @@ _zobrist create_initial_hash (position& p){
 		/* See above note. */
 		initial_hash = xor_out(initial_hash, get_piece_location(r), BLACK, get_piece_type(r));
 	}
-	initial_hash = xor_castling(initial_hash, get_castle_right(p.details, WKS_CASTLE));
-	initial_hash = xor_castling(initial_hash, get_castle_right(p.details, WQS_CASTLE));
-	initial_hash = xor_castling(initial_hash, get_castle_right(p.details, BKS_CASTLE));
-	initial_hash = xor_castling(initial_hash, get_castle_right(p.details, BQS_CASTLE));
-	_location epsq = get_epsq(p.details);
-	if (epsq != 0) initial_hash ^= xor_values[EPSQ_HASH_OFFSET + x88to64(epsq)];
+	initial_hash = xor_castling(initial_hash, get_castle_four (p.details), 0);
+	initial_hash ^= xor_values[EPSQ_HASH_OFFSET + x88to64(get_epsq(p.details))];
 	if (is_black_to_move(p.details)) initial_hash ^= xor_values[STM_INDEX];
 	return initial_hash;
 }
@@ -43,7 +39,7 @@ round::round(int bits){
 
 	/* Generate the XOR bitstrings */
 	srand(9001);						/* Seed rand to induce predictable behavior. */
-	for(int i = 0; i < 837; ++i){
+	for(int i = 0; i < 849; ++i){
 		/* Ensure each XOR value is unique */
 		long data = rand();
 		bool unique = false;
@@ -58,6 +54,7 @@ round::round(int bits){
 		}
 		xor_values[i] = data;
 	}
+	xor_values[CASTLE_HASH_OFFSET] = 0;
 	/* Construct appropriate mask for index allocation. */
 	int temp = 0;
 	for(int i = 0; i < bits; ++i) temp |= 1 << i;

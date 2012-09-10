@@ -28,7 +28,7 @@ long perft_debug (int depth, _move previous);
 int main() {
 	cout << "Welcome to Myriad Standalone Utility" << endl;
 	cout << "~~Myriad (c) Team Spark~~" << endl;
-	cout << "**Utility last updated: 7 Aug. 2012**" << endl << endl;
+	cout << "**Utility last updated: 10 Sep. 2012**" << endl << endl;
 	cout << "Input 'help' for help menu." << endl;
 	cout << "-------------------------------" << endl;
 	cout << left;	/* left align formatting */
@@ -41,9 +41,6 @@ int main() {
 		string command_name, arguments;
 		getline(ss, command_name, ' ');
 		cout << endl;
-
-		clock_t startTime = clock();
-
 		if (!command_name.compare("set_board")){
 			string fen;
 			while (!ss.eof()){
@@ -93,7 +90,7 @@ int main() {
 				cout << "<< Move Made: " << move_to_string(move, current_position) << endl;
 				current_position.make_move(move);
 				cout << "<< Resultant Position: " << endl << endl;
-				cout << current_position.display_board();
+				cout << current_position.display_board() << endl;
 			} else cout << "<< An illegal move was entered!" << endl;
 		} else if (!command_name.compare("help")){
 			cout << "<< Currently implemented features include: " << endl;
@@ -109,6 +106,7 @@ int main() {
 			cout << "<< \t perft <depth> (+s)-> all depths up to the specified depth." << endl;
 			cout << "<< \t perft <depth> (+d)-> displays debug numbers instead of time." << endl;
 			cout << "<< \t piece_at <location>-> prints the type of the piece at a location." << endl;
+			cout << "<< rel_hashes-> displays all hashes relevant to the current position." << endl;
 			cout << "<< set_board <fenstring>-> sets the current position." << endl;
 		} else if (!command_name.compare("divide")){
 			getline(ss, arguments, ' ');
@@ -131,13 +129,39 @@ int main() {
 			}
 			delete moves;
 			cout << endl << "<< ----------------move_gen End----------------" << endl;
+		} else if (!command_name.compare("rel_hashes")){
+			cout << endl << "<< ----------------Relevant Hash Numbers----------------" << endl;
+			for (int i = 0; i < 16; i++){
+				_piece r = current_position.white_map[i];
+				if (r == zero_piece) break;
+				int index = get_index(get_piece_location(r), get_piece_type(r), WHITE);
+				cout << "<< " + piece_to_string(r) << setw (15) << ": xor index = " << index <<
+						", xor value = " << xor_values[index] << endl;
+			}
+			for (int i = 0; i < 16; i++){
+				_piece r = current_position.black_map[i];
+				if (r == zero_piece) break;
+				int index = get_index(get_piece_location(r), get_piece_type(r), BLACK);
+				cout << "<< " + piece_to_string(r) << setw (15) << ": xor index = " << index <<
+						", xor value = " << xor_values[index] << endl;
+			}
+			_location epsq = get_epsq(current_position.details);
+			cout << "<< epsq = " << location_to_string(epsq) << ", xor value = "
+				 << xor_values[EPSQ_HASH_OFFSET + x88to64(epsq)] << endl;
+			_property castle_four = get_epsq(current_position.details);
+			cout << "<< castle rights = " << get_castle_four (castle_four) << setw(15) << ": xor index = "
+				 << CASTLE_HASH_OFFSET + castle_four << ", xor value = "
+				 << xor_values[CASTLE_HASH_OFFSET + castle_four] << endl;
+			if (is_black_to_move(current_position.details))
+				cout << "<< Black to move, xor value = " << xor_values[STM_INDEX] << endl;
+			cout << endl << "<< --------------Relevant Hash Numbers End--------------" << endl;
 		} else if (!command_name.compare("display")){
 			cout << current_position.display_board() << endl;
 		} else if (!command_name.compare("exit")){
 			cout << "Debug Utility Closing..." << endl;
+		} else if (!command_name.compare("fen")){
+			cout << "<< FEN = " << (string) current_position << endl;
 		} else cout << "<< Input not recognized. Input 'help' for the help menu." << endl;
-		cout << endl;
-		std::cout << "Looped in " << fixed << 1000.*(clock() - startTime)/CLOCKS_PER_SEC << "ms." << endl;
 	} while (input.compare("exit"));
 }
 void divide(int depth){

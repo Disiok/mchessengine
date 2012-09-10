@@ -56,6 +56,17 @@ string piecetype_to_string(_property type) {
 	}
 	return "Invalid Type";
 }
+string piecetype_to_string(_property type, _property col){
+	switch(type){
+	case ROOK: return col ? "r" : "R";
+	case KNIGHT: return col ? "n" : "N";
+	case BISHOP: return col ? "b" : "B";
+	case QUEEN: return col ? "q" : "Q";
+	case KING: return col ? "k" : "K";
+	case PAWN: return col ? "p" : "P";
+	}
+	return "Invalid Type.";
+}
 string position::display_board(){
 	string to_return = "<<     a   b   c   d   e   f   g   h \n";
 	to_return += "<<   ----+---+---+---+---+---+---+----\n";
@@ -66,13 +77,9 @@ string position::display_board(){
 		to_return += "<< " + ss.str() + " |";
 		for (int j = 0; j < 8; j++){
 			_piece occupant = piece_search((i << 4) + j);
-			if (get_piece_type(occupant) == 0) cout << occupant << endl;
 			if (occupant == zero_piece) to_return += "   |";
 			else {
-				_property col = get_piece_color(occupant);
-				string type = piecetype_to_string(get_piece_type(occupant));
-				if (type == "") type = col ? "p" : "P";
-				else if (col) type[0] = type[0] - 'A' + 'a';
+				string type = piecetype_to_string(get_piece_type(occupant), get_piece_color(occupant));
 				to_return += " " + type + " |";
 			}
 		}
@@ -81,25 +88,31 @@ string position::display_board(){
 		to_return += "\n<<  ";
 		to_return += " ----+---+---+---+---+---+---+----\n";
 	}
-	stringstream ss1;
-	ss1 << get_plycount(details);
-	to_return += "<< plycount = " + ss1.str() + ", ";
+	stringstream ss;
+	ss << get_plycount(details);
+	to_return += "<< plycount = " + ss.str() + ", castling rights = ";
 	unsigned char original_length = to_return.size();
 	if(get_castle_right(details, WKS_CASTLE)) to_return += 'K';
 	if(get_castle_right(details, WQS_CASTLE)) to_return += 'Q';
 	if(get_castle_right(details, BKS_CASTLE)) to_return += 'k';
 	if(get_castle_right(details, BQS_CASTLE)) to_return += 'q';
 	if(to_return.size() == original_length) to_return += "-";
-	ss1.clear();
-	ss1 << fullmove_clock;
-	to_return += ", halfmove clock = " + ss1.str();
+	ss.clear();
+	ss.str(string());
+	ss << fullmove_clock;
+	to_return += ", fullmove clock = " + ss.str();
 	_location epsq = get_epsq(details);
 	if (epsq != 0) to_return += ", epsq = " + location_to_string(epsq);
+	ss.clear();
+	ss.str(string());
+	ss << hash_key;
+	to_return += "\n<< hash key = " + ss.str();
 	return to_return;
 }
 position::position(string fen){
 	for(int i = 0; i < 16; ++i) black_map[i] = white_map[i] = 0;
 	for(int i = 0; i < 136; ++i) board[i] = &zero_piece;
+	details = 0;
 	istringstream ss;
 	ss.str(fen);
 	string row;
@@ -167,7 +180,9 @@ position::position(string fen){
 	/* Fullmove Clock */
 	ss >> fullmove_clock;
 	/* Set board array. */
-	for (int i = 0; i < 16; i++) board[get_piece_location(white_map[i])] = &white_map[i];
+	for (int i = 0; i < 16; i++) {
+		board[get_piece_location(white_map[i])] = &white_map[i];
+	}
 	for (int i = 0; i < 16; i++) board[get_piece_location(black_map[i])] = &black_map[i];
 	hash_key = create_initial_hash(*this);
 }
@@ -175,28 +190,33 @@ position::operator string() {
 	string fen;
 	stringstream ss;
 	/* Board */
-	for(int i = 0; i < 8; ++i) {
+	for(int i = 7; i >= 0; --i) {
 		string rank;
 		int n_blank = 0;
 		for (int j = 0; j < 8; ++j){
 			_location sq = (i << FOUR_SH) + j;
-			_piece occupier = piece_search(sq);
-			if (occupier == zero_piece) n_blank++;
+			_piece occupant = piece_search(sq);
+			if (occupant == zero_piece) n_blank++;
 			else{
 				if (n_blank != 0){
 					ss << n_blank;
 					rank += ss.str();
 					n_blank = 0;
 					ss.clear();
+					ss.str(string());
 				}
-				string piece_type = piecetype_to_string(get_piece_type(occupier));
-				if (get_piece_color(occupier)) piece_type[0] = piece_type[0] - 'A' + 'a';	/* To lower case */
-				rank += piece_type;
+				string type = piecetype_to_string(get_piece_type(occupant), get_piece_color(occupant));
+				rank += type;
 			}
 		}
-		if (n_blank == 8) fen += "8";
-		else fen += rank;
-		if(i != 7) fen += '/';
+		if (n_blank != 0){
+			ss << n_blank;
+			rank += ss.str();
+			ss.clear();
+			ss.str(string());
+		}
+		fen += rank;
+		if(i != 0) fen += '/';
 	}
 	fen += ' ';
 	/* Side to move */

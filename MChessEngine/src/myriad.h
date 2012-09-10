@@ -92,14 +92,11 @@ private:
 	_zobrist *hashes;
 	short *depth;
 };
-
 class pine {
 	public:
 		static const round* table;
-
 		pine(const position& p);
 	private:
-
 };
 // ======================End of Classes======================
 // ======================Constants=====================
@@ -163,14 +160,15 @@ extern _piece zero_piece; 					/* WARNING: g++ will not allow this to be declare
 const int multiplier [] = {0, 2, 4, 6, 8, 10};
 const int CASTLE_HASH_OFFSET = 832;
 const int EPSQ_HASH_OFFSET = 768;
-const int STM_INDEX = 836;
-extern long xor_values [837];		/* The value to xor in for each property on the board, i.e., knight on f3 */
+const int STM_INDEX = 848;
+extern long xor_values [849];		/* The value to xor in for each property on the board, i.e., knight on f3 */
 // ======================End of Constants======================
 // ======================Functions======================
 /* utility / debug functions */
 string piece_to_string (_piece p);
 string move_to_string (_move m, position &p);
 string piecetype_to_string (_property type);
+string piecetype_to_string(_property type, _property col);
 inline string location_to_string (_location sq){
 	stringstream ss;
 	ss << (1 + (sq>> FOUR_SH));
@@ -207,15 +205,15 @@ inline _property create_capture_mod (_property attacker, _property victim, _prop
 /* Zobrist hash manipulators */
 inline int get_index(_location loc, _property type, _property color)
 	/* Note: type - 1 since piece types start at 1, only useful for ordinary piece moves. */
-	{	return 128 * (multiplier[type - 1] + (color)) + x88to64(loc);	}
+	{	return 64 * (multiplier[type - 1] + (color)) + x88to64(loc);	}
 _zobrist create_initial_hash (position &);
 inline _zobrist xor_in_out (_zobrist old, _location prev_loc, _location new_loc, _property col, _property type)
 	{	return old^xor_values[get_index(prev_loc, type, col)]^xor_values[get_index(new_loc, type, col)];	}
 inline _zobrist xor_out (_zobrist old, _location prev_loc, _property col, _property type)
 	{	return old^xor_values[get_index(prev_loc, type, col)];	}
-inline _zobrist xor_castling (_zobrist old, _property castling_modifier)
-	/* Note: castling modifier start from 1. */
-	{	return old^xor_values[CASTLE_HASH_OFFSET + castling_modifier - 1];	}
+inline _zobrist xor_castling (_zobrist old, _property castle_four, _property prev_rights)
+	/* castle_four = 4 bits representing each of the castle rights. */
+	{	return old^xor_values[CASTLE_HASH_OFFSET + prev_rights]^xor_values[CASTLE_HASH_OFFSET + castle_four];	}
 inline _zobrist xor_epsq (_zobrist old, _location prev_epsq, _location new_epsq)
 	{return old^xor_values[EPSQ_HASH_OFFSET + x88to64(prev_epsq)]^xor_values[EPSQ_HASH_OFFSET + x88to64(new_epsq)];}
 inline _zobrist xor_promotion (_zobrist old, _location prev_loc, _location new_loc, _property col, _property promote)
@@ -233,10 +231,9 @@ inline _property reset_ply_count (_property detail) {	return detail & (~0xfe);	}
 inline int get_plycount(_property detail) {	return (detail >> 1) & 0x7f;	}
 inline _property get_castle_right (_property detail, _property modifier)
 	{	return (detail >> (modifier + 7)) & 1; }
-inline _property revoke_castle_right (_property detail, _zobrist& old_key, _property modifier){
-	old_key = xor_castling(old_key, modifier);
-	return detail & (~(1 << (modifier + 7)));
-}
+inline _property get_castle_four (_property detail) {	return detail >> 7;	}
+inline _property revoke_castle_right (_property detail, _property modifier)
+	{	return detail & (~(1 << (modifier + 7)));	}
 // ======================End of Functions======================
 }
 

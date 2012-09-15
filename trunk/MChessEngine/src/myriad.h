@@ -44,7 +44,7 @@ typedef pair<_move,_property> _u; 	/*"undo pair", used with operator-, operator-
 // ======================Classes======================
 class position{
 public:
-	_piece* board[0x77];
+	_piece* board[0x78];
 	_piece white_map[16];
 	_piece black_map[16];
 	_property details;		/* LSB->MSB, 1 bit for stm, 7 bits for plycount, 4 bits for cstl. rights.,

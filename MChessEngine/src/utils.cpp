@@ -111,7 +111,7 @@ string position::display_board(){
 }
 position::position(string fen){
 	for(int i = 0; i < 16; ++i) black_map[i] = white_map[i] = 0;
-	for(int i = 0; i < 136; ++i) board[i] = &zero_piece;
+	for(int i = 0; i < 0x78; ++i) board[i] = &zero_piece;
 	details = 0;
 	istringstream ss;
 	ss.str(fen);

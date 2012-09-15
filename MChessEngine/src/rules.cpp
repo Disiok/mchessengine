@@ -17,7 +17,7 @@ _piece zero_piece = 0;
 long  xor_values[849];
 
 position::position() : details(start_position), fullmove_clock(0) {
-	for (int i = 0; i < 0x88 ; ++i)	board[i] = &zero_piece;
+	for (int i = 0; i < 0x78 ; ++i)	board[i] = &zero_piece;
 	/* king is always first */
 	white_map[0] = create_piece(0x04, KING, WHITE);
 	black_map[0] = create_piece(0x74, KING, BLACK);

@@ -75,7 +75,7 @@ string position::display_board(){
 		stringstream ss;
 		ss << (i + 1);
 		to_return += "<< " + ss.str() + " |";
-		for (int j = 0; j < 8; j++){
+		for (int j = 0; j < 8; ++j){
 			_piece occupant = piece_search((i << 4) + j);
 			if (occupant == zero_piece) to_return += "   |";
 			else {
@@ -110,15 +110,8 @@ string position::display_board(){
 	return to_return;
 }
 void position::fromFen(string fen){
-	_piece white_map2[16], black_map2[16];
-	_piece* board2[0x78];
-
-	copy(white_map, white_map+16, white_map2);
-	copy(black_map, black_map+16, black_map2);
-	copy(board, board+0x78, board2);
-
-	for(int i = 0; i < 16; ++i) black_map[i] = white_map[i] = 0;
-	for(int i = 0; i < 0x78; ++i) board[i] = &zero_piece;
+	for(unsigned char i = 0; i < 16; ++i) black_map[i] = white_map[i] = 0;
+	for(unsigned char i = 0; i < 0x78; ++i) board[i] = &zero_piece;
 	details = 0;
 	istringstream ss;
 	ss.str(fen);
@@ -141,6 +134,7 @@ void position::fromFen(string fen){
 			}
 			const bool is_black = (row[x] >= 'b' && row[x] <= 'r');
 			_piece* map = is_black ? black_map : white_map;
+			assert(insertion_index[is_black] <= 16);
 			if(row[x] == 'K' + ((is_black) * 32)) { 						/* Lower/upper case conversion, +32 */
 				map[0] = create_piece((rank << 4) + file, KING, is_black);	/* King must be at index 0 */
 				continue;
@@ -187,14 +181,31 @@ void position::fromFen(string fen){
 	/* Fullmove Clock */
 	ss >> fullmove_clock;
 	/* Set board array. */
-	for (int i = 0; i < 16; i++) {
+	for (unsigned char i = 0;
+			i < max(insertion_index[0], insertion_index[1]); ++i) {
+		assert(get_piece_location(white_map[i]) <= 0x77);
+		assert(get_piece_location(black_map[i]) <= 0x77);
 		if ((get_piece_location(white_map[i]) & 0x88) != 0)
 			assert(cout << hex << get_piece_location(white_map[i])  && false);
-		board[get_piece_location(white_map[i])] = &white_map[i];
+
+		if (white_map[i]) {
+			board[get_piece_location(white_map[i])] = &white_map[i];
+		}
+
+		cout << (unsigned int)i << ": " << *(board[get_piece_location(white_map[i])]) << " should be " << white_map[i] << endl;
+		assert(cout << (unsigned int)i << ": " << *(board[0]) << endl && ((i >= 13) ? board[0] == &white_map[13] : true));
+
 		if((get_piece_location(black_map[i]) & 0x88) != 0)
 			assert(cout << hex << get_piece_location(black_map[i])  && false);
-		board[get_piece_location(black_map[i])] = &black_map[i];
+
+		if (black_map[i]) {
+			board[get_piece_location(black_map[i])] = &black_map[i];
+		}
+
+		assert(cout << (unsigned int)i << ": " << *(board[0]) << endl && ((i >= 13) ? board[0] == &white_map[13] : true));
 	}
+	assert(board[0] == &white_map[13]);
+
 	hash_key = create_initial_hash(*this);
 }
 position::operator string() {
@@ -207,7 +218,7 @@ position::operator string() {
 		for (int j = 0; j < 8; ++j){
 			_location sq = (i << FOUR_SH) + j;
 			_piece occupant = piece_search(sq);
-			if (occupant == zero_piece) n_blank++;
+			if (occupant == zero_piece) ++n_blank;
 			else{
 				if (n_blank != 0){
 					ss << n_blank;

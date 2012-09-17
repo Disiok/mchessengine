@@ -71,7 +71,7 @@ void position::make_move(_move m) {
 	hash_key ^= xor_values[STM_INDEX];
 	details = clear_epsq (details);
 	details = increase_ply_count (details);		/* switch side to move, ++ plycount */
-	fullmove_clock++;
+	++fullmove_clock;
 
 	switch (modifier){
 	case 0:
@@ -179,7 +179,7 @@ vector <_move>* position::move_gen() {
 	if(threats_size != 0) {
 		/* if king is currently in check */
 		/* Consider moving the king */
-		for (int i = 0; i < 8; i++) king_gen(king, turn_map[0], *moves, opp_col, RADIAL[i]);
+		for (int i = 0; i < 8; ++i) king_gen(king, turn_map[0], *moves, opp_col, RADIAL[i]);
 
 		if (threats_size >= 2) return moves;	/* Only moving the king is possible on double check. */
 		else{
@@ -194,12 +194,12 @@ vector <_move>* position::move_gen() {
 			/* Consider pawns only in capturing the checking piece, not to interpose. */
 			pawn_capture_reach(assassins, threat_loc, turn_col);
 			size = assassins.size();
-			for (unsigned int i = 0; i < size; i++){
+			for (unsigned int i = 0; i < size; ++i){
 				if (!get_assailant (guardian_map, assassins[i])){
 					_location start = get_piece_location(assassins[i]);
 					_property type = get_piece_type(assassins[i]);
 					if (type == PAWN && (threat_loc & 0x70) == promotion_row){
-						for (_property j = KNIGHT; j < KING; j++){
+						for (_property j = KNIGHT; j < KING; ++j){
 							_property capture_mod = create_capture_mod(PAWN, threat_type, j);
 							moves->push_back(create_move(start, threat_loc, capture_mod));
 						}
@@ -234,7 +234,7 @@ vector <_move>* position::move_gen() {
 					} else if (get_piece_color(obstruct) == turn_col){
 						if (get_piece_type(obstruct) == PAWN && get_assailant(guardian_map, obstruct) == zero_piece){
 							if ((next_loc & 0x70) == promotion_row){
-								for (_property i = KNIGHT; i < KING; i++)
+								for (_property i = KNIGHT; i < KING; ++i)
 									moves->push_back(create_move(start, next_loc, PROMOTE_OFFSET + i));
 							}
 							else moves->push_back(create_move(start, next_loc));
@@ -243,7 +243,7 @@ vector <_move>* position::move_gen() {
 					/* Attempt to interpose other pieces which are not guardians. */
 					vector <_piece> savior = reachable_pieces(next_loc, opp_col);
 					int savior_size = savior.size();
-					for (int i = 0; i < savior_size; i++){
+					for (int i = 0; i < savior_size; ++i){
 						if (get_assailant(guardian_map, savior[i]) == zero_piece)
 							moves->push_back(create_move(get_piece_location(savior[i]), next_loc));
 					}
@@ -265,7 +265,7 @@ vector <_move>* position::move_gen() {
 	} else {
 		/*if the king is currently not in check */
 		_piece *guardian_map = create_guardian_map (turn_col, opp_col);
-		for(int current_index = 0; current_index < 16; current_index++) {
+		for(int current_index = 0; current_index < 16; ++current_index) {
 			_piece current_piece = turn_map [current_index];
 			if (current_piece == zero_piece) break;
 			_property c_type = get_piece_type(current_piece), type;
@@ -277,12 +277,12 @@ vector <_move>* position::move_gen() {
 				switch(c_type) {
 				case KING:
 					/* Normal king moves */
-					for (int i = 0; i < 4; i++) {
+					for (int i = 0; i < 4; ++i) {
 						king_gen(c_loc, turn_map[0], *moves, opp_col, DIAGONAL[i]);
 					}
 					/* If king is not on starting location, then castling is not available. */
 					if (c_loc != 0x04 && c_loc != 0x74){
-						for (int i = 0; i < 4; i++) king_gen(c_loc, turn_map[0], *moves, opp_col, LINEAR[i]);
+						for (int i = 0; i < 4; ++i) king_gen(c_loc, turn_map[0], *moves, opp_col, LINEAR[i]);
 					} else {
 						/**
 						 * If castling is possible, then take special considerations. Use a modified version
@@ -290,7 +290,7 @@ vector <_move>* position::move_gen() {
 						 * king.
 						 */
 						bool ks_avail = true, qs_avail = true;
-						for (int i = 0; i < 4; i++){
+						for (int i = 0; i < 4; ++i){
 							next_loc = c_loc + LINEAR[i];
 							if ((next_loc & 0x88) == 0){
 								obstruct = piece_search (next_loc);
@@ -373,7 +373,7 @@ vector <_move>* position::move_gen() {
 							if (piece_search(next_loc) == zero_piece)
 								moves->push_back(create_move(c_loc, next_loc, DOUBLE_ADVANCE));
 						} else if ((next_loc & 0x70) == promotion_row){
-							for (_property i = KNIGHT; i < KING; i++)
+							for (_property i = KNIGHT; i < KING; ++i)
 								moves->push_back(create_move(c_loc, next_loc, PROMOTE_OFFSET + i));
 						} else moves->push_back(create_move(c_loc, next_loc));
 					}
@@ -400,13 +400,13 @@ vector <_move>* position::move_gen() {
 					}
 
 					/* Pawn captures */
-					for (int pawn_atk_index = 0; pawn_atk_index < 2; pawn_atk_index++){
+					for (int pawn_atk_index = 0; pawn_atk_index < 2; ++pawn_atk_index){
 						next_loc = c_loc + pawn_atk[pawn_atk_index];
 						/* note: type of zero_piece is 0 (or zero_piece itself). */
 						if ((type = get_piece_type(piece_search(next_loc, opp_col))) != zero_piece){
 							/* truth of search(next_loc) != 0 implies truth of sq & 0x88 == 0, given legal */
 							if ((next_loc & 0x70) == promotion_row){
-								for (_property i = KNIGHT; i < KING; i++){
+								for (_property i = KNIGHT; i < KING; ++i){
 									_property capture_mod = create_capture_mod(PAWN, type, i);
 									moves->push_back(create_move(c_loc, next_loc, capture_mod));
 								}
@@ -418,16 +418,16 @@ vector <_move>* position::move_gen() {
 					}
 					break;
 				case ROOK:
-					for(int i = 0; i < 4; i++) continuous_gen(c_type, c_loc, *moves, turn_col, LINEAR[i]);
+					for(int i = 0; i < 4; ++i) continuous_gen(c_type, c_loc, *moves, turn_col, LINEAR[i]);
 					break;
 				case QUEEN:
-					for(int i = 0; i < 8; i++) continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[i]);
+					for(int i = 0; i < 8; ++i) continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[i]);
 					break;
 				case BISHOP:
-					for(int i = 0; i < 4; i++) continuous_gen(c_type, c_loc, *moves, turn_col, DIAGONAL[i]);
+					for(int i = 0; i < 4; ++i) continuous_gen(c_type, c_loc, *moves, turn_col, DIAGONAL[i]);
 					break;
 				case KNIGHT:
-					for(int i = 0; i < 8; i++) single_gen(c_type, c_loc, *moves, opp_col, KNIGHT_MOVE[i]);
+					for(int i = 0; i < 8; ++i) single_gen(c_type, c_loc, *moves, opp_col, KNIGHT_MOVE[i]);
 					break;
 				}
 			} else {
@@ -450,7 +450,7 @@ vector <_move>* position::move_gen() {
 						if (close_diff == pawn_atk [0] || close_diff == pawn_atk[1]){
 							if ((attacker_loc & 0x70) == promotion_row){
 								/* promotion with capture */
-								for (_property k = KNIGHT; k < KING; k++){
+								for (_property k = KNIGHT; k < KING; ++k){
 									_property capture_mod = create_capture_mod (c_type, attacker_type, k);
 									moves->push_back(create_move(c_loc, attacker_loc, capture_mod));
 								}
@@ -513,7 +513,7 @@ bool position::is_in_check()  {
 	 */
 	int pawn_index = 3 + turn_col * 2;
 
-	for(int i = 0; i < 8; i++) {
+	for(int i = 0; i < 8; ++i) {
 		melee = true;	/* pawn checks possible on first iteration. */
 		current = king + RADIAL[i];
 		while((current & 0x88) == 0) {
@@ -534,7 +534,7 @@ bool position::is_in_check()  {
 			melee = false;	/* revoke pawn check after 1st iteration. */
 		}
 	}
-	for(int i = 0; i < 8; i++){
+	for(int i = 0; i < 8; ++i){
 		obstruct = piece_search(king + KNIGHT_MOVE[i], opp_col);
 		if (get_piece_type(obstruct) == KNIGHT) return true;
 	}
@@ -550,7 +550,7 @@ void position::unmake_move (_move previous_move, _property prev_details, _zobris
 			*ep_moved;
 	_piece& moved = piece_search(end, turn_col);
 
-	fullmove_clock--;
+	--fullmove_clock;
 	switch (modifier){
 	case 0:	case DOUBLE_ADVANCE: move_piece(moved, end, start, board); break;
 	case WKS_CASTLE: case BKS_CASTLE:
@@ -564,6 +564,7 @@ void position::unmake_move (_move previous_move, _property prev_details, _zobris
 		move_piece(turn_map[0],temp, temp + 0x02, board);
 		break;
 	case EN_PASSANT:
+		assert(get_last_index(opp_map) + 1 < 16 && get_last_index(opp_map) + 1 >= 0);
 		captured = &opp_map[get_last_index(opp_map) + 1];
 		*captured = create_piece(end, PAWN, opp_col);
 		board[end] = captured;
@@ -585,6 +586,7 @@ void position::unmake_move (_move previous_move, _property prev_details, _zobris
 				board[start] = &moved;
 			}
 			victim_type = (modifier >> FOUR_SH) & NIBBLE_MASK;
+			assert(get_last_index(opp_map) + 1 >= 0 && get_last_index(opp_map) + 1 < 16);
 			captured = &opp_map[get_last_index(opp_map) + 1];
 			*captured = create_piece(end, victim_type, opp_col);
 			board[end] = captured;
@@ -652,7 +654,7 @@ inline vector <_piece> position::reachable_pieces (_location square, _property m
 	_piece obstruct;
 	_location current = square;
 
-	for(int i = 0; i < 8; i++) {
+	for(int i = 0; i < 8; ++i) {
 		current = square + RADIAL[i];
 		while((current & 0x88) == 0) {
 			obstruct = piece_search(current);
@@ -668,7 +670,7 @@ inline vector <_piece> position::reachable_pieces (_location square, _property m
 			current += RADIAL[i];
 		}
 	}
-	for(int i = 0; i < 8; i++){
+	for(int i = 0; i < 8; ++i){
 		obstruct = piece_search(square + KNIGHT_MOVE[i], !map);
 		if (get_piece_type(obstruct) == KNIGHT) to_return.push_back(obstruct);
 	}
@@ -681,7 +683,7 @@ inline _piece* position::create_guardian_map (_property col, _property opp_col){
 	_property obstruct_type;
 	_location king = get_piece_location(turn_map[0]), current;
 
-	for (int i = 0; i < 8; i ++){
+	for (int i = 0; i < 8; ++i){
 		current = king + RADIAL[i];
 		bool guardian_found = false, set = false;
 		while ((current & 0x88) == 0){
@@ -734,11 +736,11 @@ inline void position::kill(_piece& victim, _property victim_map) {
 	to_swap = zero_piece;
 }
 inline int position::get_last_index (_piece* map){
-	for (int i = 15; i > 0; i--) if (map[i] != zero_piece) return i;
+	for (int i = 15; i > 0; --i) if (map[i] != zero_piece) return i;
 	return -1;
 }
 inline _piece position::get_assailant (_piece *guardian_map, _piece piece_in_question){
-	for (int i = 0; i < 8; i++) if (guardian_map[i] == piece_in_question) return guardian_map[i+8];
+	for (int i = 0; i < 8; ++i) if (guardian_map[i] == piece_in_question) return guardian_map[i+8];
 	return zero_piece;
 }
 inline void position::pawn_capture_reach (vector <_piece> &v, _location target, _property threat_map){

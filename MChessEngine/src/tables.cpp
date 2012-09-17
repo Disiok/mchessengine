@@ -26,7 +26,7 @@ _zobrist create_initial_hash (position& p){
 		/* See above note. */
 		initial_hash = xor_out(initial_hash, get_piece_location(r), BLACK, get_piece_type(r));
 	}
-	initial_hash = xor_castling(initial_hash, get_castle_four (p.details), 0);
+	initial_hash = xor_castling(initial_hash, get_castle_nibble (p.details), 0);
 	initial_hash ^= xor_values[EPSQ_HASH_OFFSET + x88to64(get_epsq(p.details))];
 	if (is_black_to_move(p.details)) initial_hash ^= xor_values[STM_INDEX];
 	return initial_hash;

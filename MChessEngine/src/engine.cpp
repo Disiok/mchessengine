@@ -149,7 +149,7 @@ int main() {
 			cout << "<< epsq = " << location_to_string(epsq) << ", xor value = "
 				 << xor_values[EPSQ_HASH_OFFSET + x88to64(epsq)] << endl;
 			_property castle_four = get_epsq(current_position.details);
-			cout << "<< castle rights = " << get_castle_four (castle_four) << setw(15) << ": xor index = "
+			cout << "<< castle rights = " << get_castle_nibble (castle_four) << setw(15) << ": xor index = "
 				 << CASTLE_HASH_OFFSET + castle_four << ", xor value = "
 				 << xor_values[CASTLE_HASH_OFFSET + castle_four] << endl;
 			if (is_black_to_move(current_position.details))

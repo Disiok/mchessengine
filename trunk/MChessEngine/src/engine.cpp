@@ -47,7 +47,7 @@ int main() {
 				getline (ss, arguments);
 				fen += arguments;
 			}
-			current_position = fen;
+			current_position.fromFen(fen);
 			cout << "<< The position has been set to the following position: " << endl;
 			cout << current_position.display_board() << endl;
 		} else if (!command_name.compare("perft")){
@@ -220,6 +220,17 @@ long perft_benchmark(int depth){
 	n_moves = moves->size();
 	for (int i = 0; i < n_moves; i++){
 		current_position.make_move(moves->operator[](i));
+		/*
+		if (depth == 2) {
+			cout << "From " << (moves->operator[](i)&255)
+					<< "to " << ((moves->operator[](i) >> 8)&255) << endl;
+		}
+
+		if (i == n_moves-1) {
+			cout << "Leaving depth " << depth << endl;
+		}
+		*/
+
 		nodes += perft_benchmark(depth - 1);
 		current_position.unmake_move(moves->operator[](i), details, hash);
 	}

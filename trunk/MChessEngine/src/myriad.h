@@ -53,7 +53,7 @@ public:
 	unsigned short fullmove_clock;
 
 	position();
-	position(string fen);
+	void fromFen(string fen);
 
 	bool is_in_check ();
 	void make_move(_move);
@@ -181,7 +181,9 @@ inline _location d64tox88(_location loc_64)	{	return ((loc_64 / 10) << FOUR_SH) 
 /* _piece accessors and mutators */
 inline _location get_piece_location(_piece p){ return p & LOCATION_MASK; }
 inline _property get_piece_color(_piece p){ return p >> COLOR_SH; }
-inline _property get_piece_type(_piece p){ return (p >> EIGHT_SH) & TRIPLET_MASK; }
+inline _property get_piece_type(_piece p){
+	return (p >> EIGHT_SH) & TRIPLET_MASK;
+}
 inline void move_piece(_piece& p, _location start, _location end, _piece** board){
 	p = (p ^ start) ^ end;
 	board[start] = &zero_piece;

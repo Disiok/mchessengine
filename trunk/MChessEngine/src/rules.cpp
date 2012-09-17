@@ -37,22 +37,20 @@ position::position() : details(start_position), fullmove_clock(0) {
 	white_map[7] = create_piece(0x07, ROOK, WHITE);
 	black_map[7] = create_piece(0x77, ROOK, BLACK);
 	/* Put it all into the board */
+
 	board[0x04]= &white_map[0];
 	board[0x74]= &black_map[0];
-	board[0x00]= &white_map[1];
-	board[0x70]= &black_map[1];
-	board[0x01]= &white_map[2];
-	board[0x71]= &black_map[2];
-	board[0x02]= &white_map[3];
-	board[0x72]= &black_map[3];
-	board[0x03]= &white_map[4];
-	board[0x73]= &black_map[4];
-	board[0x05]= &white_map[5];
-	board[0x75]= &black_map[5];
-	board[0x06]= &white_map[6];
-	board[0x76]= &black_map[6];
-	board[0x07]= &white_map[7];
-	board[0x77]= &black_map[7];
+	for (unsigned char i = 1; i<8; ++i) {
+		if (i <= 4){
+			board[0 + i - 1] = &white_map[i];
+			board[0x70 + i - 1] = &black_map[i];
+		}
+		else if (i > 4) {
+			board[0 + i] = &white_map[i];
+			board[0x70 + i] = &black_map[i];
+		}
+	}
+
 	/* Fill second rank with pawns */
 	for(int i = 0; i < 8; ++i) {
 		white_map [i + 8] = create_piece(i + 0x10, PAWN, WHITE);
@@ -89,6 +87,9 @@ void position::make_move(_move m) {
 		/*Revoke castling rights due to a king move */
 		else if (type == KING) details &= is_black ? 0x003ff : 0x00cff;
 		else if (type == PAWN) details = reset_ply_count (details);
+		else if (type == 0) {
+			assert(cout << "BAD PIECE: 0x"<<hex<<moving && 0);
+		}
 		switch (end){
 		case 0x00: details = revoke_castle_right(details, WQS_CASTLE); break;
 		case 0x07: details = revoke_castle_right(details, WKS_CASTLE); break;

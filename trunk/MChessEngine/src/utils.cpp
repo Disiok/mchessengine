@@ -109,7 +109,14 @@ string position::display_board(){
 	to_return += "\n<< hash key = " + ss.str();
 	return to_return;
 }
-position::position(string fen){
+void position::fromFen(string fen){
+	_piece white_map2[16], black_map2[16];
+	_piece* board2[0x78];
+
+	copy(white_map, white_map+16, white_map2);
+	copy(black_map, black_map+16, black_map2);
+	copy(board, board+0x78, board2);
+
 	for(int i = 0; i < 16; ++i) black_map[i] = white_map[i] = 0;
 	for(int i = 0; i < 0x78; ++i) board[i] = &zero_piece;
 	details = 0;
@@ -181,9 +188,13 @@ position::position(string fen){
 	ss >> fullmove_clock;
 	/* Set board array. */
 	for (int i = 0; i < 16; i++) {
+		if ((get_piece_location(white_map[i]) & 0x88) != 0)
+			assert(cout << hex << get_piece_location(white_map[i])  && false);
 		board[get_piece_location(white_map[i])] = &white_map[i];
+		if((get_piece_location(black_map[i]) & 0x88) != 0)
+			assert(cout << hex << get_piece_location(black_map[i])  && false);
+		board[get_piece_location(black_map[i])] = &black_map[i];
 	}
-	for (int i = 0; i < 16; i++) board[get_piece_location(black_map[i])] = &black_map[i];
 	hash_key = create_initial_hash(*this);
 }
 position::operator string() {

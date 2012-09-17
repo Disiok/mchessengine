@@ -65,7 +65,7 @@ position::position() : details(start_position), fullmove_clock(0) {
 void position::make_move(_move m) {
 	bool is_black = is_black_to_move(details);
 	_piece *map = is_black ? black_map : white_map;
-	_property modifier = get_move_modifier(m), castl_rights = get_castle_four(details), type;
+	_property modifier = get_move_modifier(m), castl_rights = get_castle_nibble(details), type;
 	_location start = get_move_start(m), end = get_move_end(m), king;
 	_piece& moving = piece_search (start, is_black);
 
@@ -90,74 +90,74 @@ void position::make_move(_move m) {
 		else if (type == KING) details &= is_black ? 0x003ff : 0x00cff;
 		else if (type == PAWN) details = reset_ply_count (details);
 		switch (end){
-			case 0x00: details = revoke_castle_right(details, WQS_CASTLE); break;
-			case 0x07: details = revoke_castle_right(details, WKS_CASTLE); break;
-			case 0x70: details = revoke_castle_right(details, BQS_CASTLE); break;
-			case 0x77: details = revoke_castle_right(details, BKS_CASTLE); break;
+		case 0x00: details = revoke_castle_right(details, WQS_CASTLE); break;
+		case 0x07: details = revoke_castle_right(details, WKS_CASTLE); break;
+		case 0x70: details = revoke_castle_right(details, BQS_CASTLE); break;
+		case 0x77: details = revoke_castle_right(details, BKS_CASTLE); break;
 		}
 		hash_key = xor_in_out (hash_key, start, end, is_black, type);
 		break;
-	case WKS_CASTLE: case BKS_CASTLE:
-		move_piece(moving, start, end, board);
-		king = get_piece_location(map[0]);
-		move_piece(map[0], king, king + 0x02, board);
-		details &= is_black ? 0x003ff : 0x00cff;		/* revoke both castling rights */
-		break;
-	case WQS_CASTLE: case BQS_CASTLE:
-		move_piece(moving, start, end, board);
-		king = get_piece_location(map[0]);
-		move_piece(map[0],king, king - 0x02, board);
-		details &= is_black ? 0x003ff : 0x00cff;		/* revoke both castling rights */
-		break;
-	case DOUBLE_ADVANCE:
-		move_piece(moving, start, end, board);
-		details = set_epsq(details, end);
-		hash_key = xor_epsq(hash_key, 0x00, end);
-		hash_key = xor_in_out(hash_key, start, end, is_black, PAWN);
-		break;
-	case EN_PASSANT:
-		move_piece(moving, start, end + (is_black ? DOWN : UP), board);
-		kill (piece_search(end, !is_black), !is_black); /* assuming the end square is the capturable pawn */
-		break;
-	default:
-		details = reset_ply_count (details);
-		if (modifier < 10){
-			_property promote_to = modifier - PROMOTE_OFFSET;
-			moving = create_piece (end, promote_to, is_black);
-			board[start] = &zero_piece;
-			board[end] = &moving;
-			hash_key = xor_promotion(hash_key, start, end, is_black, promote_to);
-		} else {
-			_piece &captured = piece_search(end, !is_black);
-			hash_key = xor_out(hash_key, end, !is_black, get_piece_type(captured));
-			kill(captured, !is_black);
+		case WKS_CASTLE: case BKS_CASTLE:
 			move_piece(moving, start, end, board);
-			_property promote_to = modifier >> EIGHT_SH;
-			if (promote_to == 0){
-				if ((type = get_piece_type(moving)) == ROOK){
-					switch (start){
-					case 0x00: details = revoke_castle_right(details, WQS_CASTLE); break;
-					case 0x07: details = revoke_castle_right(details, WKS_CASTLE); break;
-					case 0x70: details = revoke_castle_right(details, BQS_CASTLE); break;
-					case 0x77: details = revoke_castle_right(details, BKS_CASTLE); break;
-					}
-				} else if (type == KING) details &= is_black ? 0x003ff : 0x00cff;
-				hash_key = xor_in_out(hash_key, start, end, is_black, type);
-			} else {
-				moving = moving ^ 0x100 ^ (promote_to << 8);
+			king = get_piece_location(map[0]);
+			move_piece(map[0], king, king + 0x02, board);
+			details &= is_black ? 0x003ff : 0x00cff;		/* revoke both castling rights */
+			break;
+		case WQS_CASTLE: case BQS_CASTLE:
+			move_piece(moving, start, end, board);
+			king = get_piece_location(map[0]);
+			move_piece(map[0],king, king - 0x02, board);
+			details &= is_black ? 0x003ff : 0x00cff;		/* revoke both castling rights */
+			break;
+		case DOUBLE_ADVANCE:
+			move_piece(moving, start, end, board);
+			details = set_epsq(details, end);
+			hash_key = xor_epsq(hash_key, 0x00, end);
+			hash_key = xor_in_out(hash_key, start, end, is_black, PAWN);
+			break;
+		case EN_PASSANT:
+			move_piece(moving, start, end + (is_black ? DOWN : UP), board);
+			kill (piece_search(end, !is_black), !is_black); /* assuming the end square is the capturable pawn */
+			break;
+		default:
+			details = reset_ply_count (details);
+			if (modifier < 10){
+				_property promote_to = modifier - PROMOTE_OFFSET;
+				moving = create_piece (end, promote_to, is_black);
+				board[start] = &zero_piece;
 				board[end] = &moving;
 				hash_key = xor_promotion(hash_key, start, end, is_black, promote_to);
-			}
-			switch (end){
+			} else {
+				_piece &captured = piece_search(end, !is_black);
+				hash_key = xor_out(hash_key, end, !is_black, get_piece_type(captured));
+				kill(captured, !is_black);
+				move_piece(moving, start, end, board);
+				_property promote_to = modifier >> EIGHT_SH;
+				if (promote_to == 0){
+					if ((type = get_piece_type(moving)) == ROOK){
+						switch (start){
+						case 0x00: details = revoke_castle_right(details, WQS_CASTLE); break;
+						case 0x07: details = revoke_castle_right(details, WKS_CASTLE); break;
+						case 0x70: details = revoke_castle_right(details, BQS_CASTLE); break;
+						case 0x77: details = revoke_castle_right(details, BKS_CASTLE); break;
+						}
+					} else if (type == KING) details &= is_black ? 0x003ff : 0x00cff;
+					hash_key = xor_in_out(hash_key, start, end, is_black, type);
+				} else {
+					moving = moving ^ 0x100 ^ (promote_to << 8);
+					board[end] = &moving;
+					hash_key = xor_promotion(hash_key, start, end, is_black, promote_to);
+				}
+				switch (end){
 				case 0x00: details = revoke_castle_right(details, WQS_CASTLE); break;
 				case 0x07: details = revoke_castle_right(details, WKS_CASTLE); break;
 				case 0x70: details = revoke_castle_right(details, BQS_CASTLE); break;
 				case 0x77: details = revoke_castle_right(details, BKS_CASTLE); break;
+				}
 			}
-		}
-		break;
+			break;
 	}
-	hash_key = xor_castling(hash_key, get_castle_four(details), castl_rights);
+	hash_key = xor_castling(hash_key, get_castle_nibble(details), castl_rights);
 }
 vector <_move>* position::move_gen() {
 	_property turn_col = is_black_to_move(details), opp_col = turn_col ^ 1;
@@ -193,18 +193,8 @@ vector <_move>* position::move_gen() {
 			/* Consider pawns only in capturing the checking piece, not to interpose. */
 			pawn_capture_reach(assassins, threat_loc, turn_col);
 			size = assassins.size();
-			bool guardian;
-
 			for (unsigned int i = 0; i < size; i++){
-				guardian = false;	/* Reset guardian flag. */
-				for (int j = 0; j < 8; j++){
-					if (assassins[i] == guardian_map[j]){
-						guardian = true;
-						break;
-					}
-				}
-				//guardian is 0: the null terminator is hit
-				if (!guardian){
+				if (!get_assailant (guardian_map, assassins[i])){
 					_location start = get_piece_location(assassins[i]);
 					_property type = get_piece_type(assassins[i]);
 					if (type == PAWN && (threat_loc & 0x70) == promotion_row){
@@ -215,7 +205,6 @@ vector <_move>* position::move_gen() {
 					} else moves->push_back(create_move(start, threat_loc, create_capture_mod(type, threat_type)));
 				}
 			}
-
 			/* Attempt to block threat by interposing a piece. Possible only with ranged threats. */
 			_location double_adv_row = start_row + 2 * (turn_col ? DOWN : UP);
 			if (threat_type != PAWN && threat_type != KNIGHT){
@@ -230,8 +219,6 @@ vector <_move>* position::move_gen() {
 				 */
 				next_loc = king + diff;
 				while (next_loc != threat_loc){
-					guardian = false;	/* Reset guardian flag */
-
 					/* Attempt to interpose with a non-guardian pawn, since only pawn captures (and not
 					 * advances) are covered in reachable_pieces */
 					start = next_loc - pawn_direction;
@@ -239,44 +226,25 @@ vector <_move>* position::move_gen() {
 					if (obstruct == zero_piece && ((next_loc & 0x70) == double_adv_row)){
 						start -= pawn_direction;	/* Check if double advance is possible. */
 						obstruct = piece_search (start, turn_col);
-						if (get_piece_type(obstruct) == PAWN){
-							for (int i = 0; i < 8; i++){
-								if (guardian_map[i] == obstruct){
-									guardian = true;
-									break;
-								}
-							}
-							if (!guardian) moves->push_back(create_move(start, next_loc, DOUBLE_ADVANCE));
-						}
+						/* Pieces are not guardians if they don't have an assailant pinning them
+						 * to the king's defence. */
+						if (get_piece_type(obstruct) == PAWN && get_assailant(guardian_map, obstruct) == zero_piece)
+							moves->push_back(create_move(start, next_loc, DOUBLE_ADVANCE));
 					} else if (get_piece_color(obstruct) == turn_col){
-						if (get_piece_type(obstruct) == PAWN){
-							for (int i = 0; i < 8; i++){
-								if (guardian_map[i] == obstruct){
-									guardian = true;
-									break;
-								}
+						if (get_piece_type(obstruct) == PAWN && get_assailant(guardian_map, obstruct) == zero_piece){
+							if ((next_loc & 0x70) == promotion_row){
+								for (_property i = KNIGHT; i < KING; i++)
+									moves->push_back(create_move(start, next_loc, PROMOTE_OFFSET + i));
 							}
-							if (!guardian) {
-								if ((next_loc & 0x70) == promotion_row){
-									for (_property i = KNIGHT; i < KING; i++)
-										moves->push_back(create_move(start, next_loc, PROMOTE_OFFSET + i));
-								}
-								else moves->push_back(create_move(start, next_loc));
-							}
+							else moves->push_back(create_move(start, next_loc));
 						}
 					}
 					/* Attempt to interpose other pieces which are not guardians. */
 					vector <_piece> savior = reachable_pieces(next_loc, opp_col);
 					int savior_size = savior.size();
 					for (int i = 0; i < savior_size; i++){
-						guardian = false;
-						for (int j = 0; j < 8; j++){
-							if (savior[i] == guardian_map[j]){
-								guardian = true;
-								break;
-							}
-						}
-						if (!guardian) moves->push_back(create_move(get_piece_location(savior[i]), next_loc));
+						if (get_assailant(guardian_map, savior[i]) == zero_piece)
+							moves->push_back(create_move(get_piece_location(savior[i]), next_loc));
 					}
 					next_loc += diff;
 				}
@@ -284,27 +252,11 @@ vector <_move>* position::move_gen() {
 				/* Use en passant to kill meelee checking pawn. */
 				_location left = epsq + LEFT, right = epsq + RIGHT;
 				_piece left_piece = piece_search (left, turn_col);
-				if (get_piece_type(left_piece) == PAWN){
-					guardian = false;
-					for (int i = 0; i < 8; i++){
-						if (guardian_map[i] == left_piece) {
-							guardian = true;
-							break;
-						}
-					}
-					if (!guardian) moves->push_back(create_move(left, epsq, EN_PASSANT));
-				}
+				if (get_piece_type(left_piece) == PAWN && get_assailant(guardian_map, left_piece) == zero_piece)
+					moves->push_back(create_move(left, epsq, EN_PASSANT));
 				_piece right_piece = piece_search (right, turn_col);
-				if (get_piece_type(right_piece) == PAWN){
-					guardian = false;
-					for (int i = 0; i < 8; i++){
-						if (guardian_map[i] == right_piece){
-							guardian = true;
-							break;
-						}
-					}
-					if (!guardian) moves->push_back(create_move(right, epsq, EN_PASSANT));
-				}
+				if (get_piece_type(right_piece) == PAWN && get_assailant(guardian_map, right_piece) == zero_piece)
+					moves->push_back(create_move(right, epsq, EN_PASSANT));
 			}
 			/*Only killing the threat is plausible: Special en-passant killing is possible*/
 			delete [] guardian_map;
@@ -315,95 +267,12 @@ vector <_move>* position::move_gen() {
 		for(int current_index = 0; current_index < 16; current_index++) {
 			_piece current_piece = turn_map [current_index];
 			if (current_piece == zero_piece) break;
-
-			bool not_guardian = true;
 			_property c_type = get_piece_type(current_piece), type;
 			_location c_loc = get_piece_location(current_piece), next_loc, right, left;
+			_piece assailant = get_assailant(guardian_map, current_piece);
 
-			/* is current_piece a guardian? */
-			for (int i = 0; i < 8; i++){
-				if (current_piece == guardian_map[i]){
-					/* if yes, guardian must remain guarding */
-					_location attacker_loc;
-					_property attacker_type;
-					signed char diff;
-					switch (c_type){
-					case PAWN:
-						if (i == 0 || i == 1){
-							attacker_loc = get_piece_location(guardian_map[i + 8]);
-							next_loc = c_loc + pawn_direction;
-							if (piece_search(next_loc) == zero_piece) {
-								moves->push_back(create_move(c_loc, next_loc));
-								if ((c_loc & 0x70) == start_row){
-									next_loc += pawn_direction;
-									if (piece_search(next_loc) == zero_piece)
-										moves->push_back(create_move(c_loc, next_loc, DOUBLE_ADVANCE));
-								}
-							}
-						} else {
-							attacker_loc = get_piece_location(guardian_map[i + 8]);
-							attacker_type = get_piece_type (guardian_map[i + 8]);
-							diff = attacker_loc - c_loc;
-							if (diff == pawn_atk [0] || diff == pawn_atk[1]){
-								if ((attacker_loc & 0x70) == promotion_row){
-									/* promotion with capture */
-									for (_property k = KNIGHT; k < KING; k++){
-										_property capture_mod = create_capture_mod (c_type, attacker_type, i);
-										moves->push_back(create_move(c_loc, attacker_loc, capture_mod));
-									}
-								} else {
-									_property capture_mod = create_capture_mod(c_type, attacker_type);
-									moves->push_back(create_move(c_loc, attacker_loc, capture_mod));
-								}
-							}
-							/* permit en_passant if along guardian direction, only permissible
-							 * on diagonal indices. */
-							if (epsq != 0 && i > 3){	/* Note, valid epsq is never 0 */
-								if ((epsq + pawn_direction - c_loc) == RADIAL[i])
-									moves->push_back(create_move(c_loc, epsq, EN_PASSANT));
-							}
-						}
-						break;
-						/* only permit moves along guardian direction */
-					case ROOK:
-						if (i == 0 || i == 1){
-							continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[0]);
-							continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[1]);
-						} else if (i == 2 || i == 3){
-							continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[2]);
-							continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[3]);
-						}
-						break;
-					case BISHOP:
-						if (i == 4 || i == 7){
-							continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[4]);
-							continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[7]);
-						} else if (i == 5 || i == 6){
-							continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[5]);
-							continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[6]);
-						}
-						break;
-					case QUEEN:
-						if (i == 0 || i == 1){
-							continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[0]);
-							continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[1]);
-						} else if (i == 2 || i == 3){
-							continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[2]);
-							continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[3]);
-						} else if (i == 4 || i == 7){
-							continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[4]);
-							continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[7]);
-						} else if (i == 5 || i == 6){
-							continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[5]);
-							continuous_gen(c_type, c_loc, *moves, turn_col, RADIAL[6]);
-						}
-						break;
-					}
-					not_guardian = false;
-				}
-			}
 			/* Piece is not guardian, therefore has no duties to king. */
-			if (not_guardian){
+			if (assailant == zero_piece){
 				switch(c_type) {
 				case KING:
 					/* Normal king moves */
@@ -434,6 +303,7 @@ vector <_move>* position::move_gen() {
 									move_piece (turn_map[0], next_loc, c_loc, board);
 								} else {
 									if (get_piece_color(obstruct) == opp_col){
+										_piece *temp = board[next_loc];
 										move_piece (turn_map[0], c_loc, next_loc, board);
 										if (!is_in_check()) {
 											_property capture_mod = create_capture_mod(KING,
@@ -441,6 +311,7 @@ vector <_move>* position::move_gen() {
 											moves->push_back(create_move(c_loc, next_loc, capture_mod));
 										}
 										move_piece (turn_map[0], next_loc, c_loc, board);
+										board[next_loc] = temp;
 									}
 									if (i == 2) qs_avail = false;
 									if (i == 3) ks_avail = false;
@@ -556,6 +427,58 @@ vector <_move>* position::move_gen() {
 					break;
 				case KNIGHT:
 					for(int i = 0; i < 8; i++) single_gen(c_type, c_loc, *moves, opp_col, KNIGHT_MOVE[i]);
+					break;
+				}
+			} else {
+				/* Guardians must move in such away that they do not hurt the king. */
+				_location attacker_loc = get_piece_location (assailant);
+				signed char diff = get_difference(c_loc, attacker_loc);
+				_property attacker_type;
+				switch (c_type){
+				case PAWN:
+					if (diff == UP || diff == DOWN){
+						next_loc = c_loc + pawn_direction;
+						if (piece_search(next_loc) == zero_piece) {
+							moves->push_back(create_move(c_loc, next_loc));
+							if ((c_loc & 0x70) == start_row && piece_search(next_loc + pawn_direction) == zero_piece)
+								moves->push_back(create_move(c_loc, next_loc, DOUBLE_ADVANCE));
+						}
+					} else {
+						attacker_type = get_piece_type (assailant);
+						char close_diff = attacker_loc - c_loc;
+						if (close_diff == pawn_atk [0] || close_diff == pawn_atk[1]){
+							if ((attacker_loc & 0x70) == promotion_row){
+								/* promotion with capture */
+								for (_property k = KNIGHT; k < KING; k++){
+									_property capture_mod = create_capture_mod (c_type, attacker_type, k);
+									moves->push_back(create_move(c_loc, attacker_loc, capture_mod));
+								}
+							} else {
+								_property capture_mod = create_capture_mod(c_type, attacker_type);
+								moves->push_back(create_move(c_loc, attacker_loc, capture_mod));
+							}
+						}
+						/* permit en_passant if along guardian direction. */
+						if (epsq != 0 && (epsq + pawn_direction - c_loc) == diff)
+								moves->push_back(create_move(c_loc, epsq, EN_PASSANT));
+					}
+					break;
+					/* only permit moves along guardian direction */
+				case ROOK:
+					if (diff == UP || diff == DOWN || diff == RIGHT || diff == LEFT){
+						continuous_gen(c_type, c_loc, *moves, turn_col, diff);
+						continuous_gen(c_type, c_loc, *moves, turn_col, -diff);
+					}
+					break;
+				case BISHOP:
+					if (diff != UP && diff != DOWN && diff != RIGHT && diff != LEFT){
+						continuous_gen(c_type, c_loc, *moves, turn_col, diff);
+						continuous_gen(c_type, c_loc, *moves, turn_col, -diff);
+					}
+					break;
+				case QUEEN:
+					continuous_gen(c_type, c_loc, *moves, turn_col, diff);
+					continuous_gen(c_type, c_loc, *moves, turn_col, -diff);
 					break;
 				}
 			}
@@ -697,22 +620,24 @@ inline void position::single_gen(_property type, _location start, vector<_move> 
 	}
 }
 inline void position::king_gen (_location start, _piece &king, vector <_move> &v, _property opp_col, char diff){
-	_piece obstruct;
+	_piece obstruct_ref;
 	_location next_loc = start + diff;
 	if ((next_loc & 0x88) == 0){
-		obstruct = piece_search (next_loc);
-		if (obstruct == zero_piece){
+		obstruct_ref = piece_search (next_loc);
+		if (obstruct_ref == zero_piece){
 			move_piece (king, start, next_loc,board);
 			if (!is_in_check()) v.push_back(create_move(start, next_loc));
 			move_piece (king, next_loc, start,board);
 		} else {
-			if (get_piece_color(obstruct) == opp_col){
+			if (get_piece_color(obstruct_ref) == opp_col){
+				_piece *temp = board[next_loc];
 				move_piece (king, start, next_loc, board);
 				if (!is_in_check()) {
-					_property capture_mod = create_capture_mod(KING, get_piece_type(obstruct));
+					_property capture_mod = create_capture_mod(KING, get_piece_type(obstruct_ref));
 					v.push_back(create_move(start, next_loc, capture_mod));
 				}
 				move_piece (king, next_loc, start,board);
+				board[next_loc] = temp;
 			}
 		}
 	}
@@ -792,7 +717,7 @@ inline _piece* position::create_guardian_map (_property col, _property opp_col){
 }
 inline char position::get_difference(_location loc, _location k_loc) {
 	_location t_rank = loc >> FOUR_SH, t_file = loc & NIBBLE_MASK, k_rank = k_loc >> FOUR_SH,
-			  k_file = k_loc & NIBBLE_MASK;
+			k_file = k_loc & NIBBLE_MASK;
 	if (t_rank == k_rank) return loc > k_loc ? RIGHT : LEFT;
 	if (t_file == k_file) return loc > k_loc ? UP : DOWN;
 	signed int rank_diff = t_rank - k_rank, file_diff = t_file - k_file;
@@ -811,9 +736,9 @@ inline int position::get_last_index (_piece* map){
 	for (int i = 15; i > 0; i--) if (map[i] != zero_piece) return i;
 	return -1;
 }
-inline bool position::is_guardian (_piece *guardian_map, _piece piece_in_question){
-	for (int i = 0; i < 8; i++) if (guardian_map[i] == piece_in_question) return true;
-	return false;
+inline _piece position::get_assailant (_piece *guardian_map, _piece piece_in_question){
+	for (int i = 0; i < 8; i++) if (guardian_map[i] == piece_in_question) return guardian_map[i+8];
+	return zero_piece;
 }
 inline void position::pawn_capture_reach (vector <_piece> &v, _location target, _property threat_map){
 	const char* opp_pawn_atk = threat_map ? BLACK_PAWN_ATTACK : WHITE_PAWN_ATTACK;

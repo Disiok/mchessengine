@@ -73,7 +73,7 @@ private:
 	inline int get_last_index(_piece*);
 	inline void kill(_piece& victim, _property map);
 	inline void king_gen(_location, _piece &, vector <_move> &, _property, char);
-	inline bool is_guardian (_piece*, _piece);
+	inline _piece get_assailant (_piece*, _piece);
 	inline void pawn_capture_reach (vector <_piece> &, _location, _property);
 	inline vector<_piece> reachable_pieces(_location, _property);
 	inline void single_gen (_property, _location, vector<_move> &, _property, char);
@@ -211,9 +211,9 @@ inline _zobrist xor_in_out (_zobrist old, _location prev_loc, _location new_loc,
 	{	return old^xor_values[get_index(prev_loc, type, col)]^xor_values[get_index(new_loc, type, col)];	}
 inline _zobrist xor_out (_zobrist old, _location prev_loc, _property col, _property type)
 	{	return old^xor_values[get_index(prev_loc, type, col)];	}
-inline _zobrist xor_castling (_zobrist old, _property castle_four, _property prev_rights)
-	/* castle_four = 4 bits representing each of the castle rights. */
-	{	return old^xor_values[CASTLE_HASH_OFFSET + prev_rights]^xor_values[CASTLE_HASH_OFFSET + castle_four];	}
+inline _zobrist xor_castling (_zobrist old, _property castle_nibble, _property prev_rights)
+	/* castle_nibble = 4 bits representing each of the castle rights. */
+	{	return old^xor_values[CASTLE_HASH_OFFSET + prev_rights]^xor_values[CASTLE_HASH_OFFSET + castle_nibble];	}
 inline _zobrist xor_epsq (_zobrist old, _location prev_epsq, _location new_epsq)
 	{return old^xor_values[EPSQ_HASH_OFFSET + x88to64(prev_epsq)]^xor_values[EPSQ_HASH_OFFSET + x88to64(new_epsq)];}
 inline _zobrist xor_promotion (_zobrist old, _location prev_loc, _location new_loc, _property col, _property promote)
@@ -231,7 +231,7 @@ inline _property reset_ply_count (_property detail) {	return detail & (~0xfe);	}
 inline int get_plycount(_property detail) {	return (detail >> 1) & 0x7f;	}
 inline _property get_castle_right (_property detail, _property modifier)
 	{	return (detail >> (modifier + 7)) & 1; }
-inline _property get_castle_four (_property detail) {	return detail >> 7;	}
+inline _property get_castle_nibble (_property detail) {	return (detail >> 7) & NIBBLE_MASK;	}
 inline _property revoke_castle_right (_property detail, _property modifier)
 	{	return detail & (~(1 << (modifier + 7)));	}
 // ======================End of Functions======================

@@ -86,6 +86,8 @@ public:
 
 	long get(_zobrist);
 	bool set(_zobrist, short, short, bool, bool, _move);
+
+	virtual ~round();
 private:
 	int MASK_INDEX;
 	_zdata *information;
@@ -186,6 +188,8 @@ inline _property get_piece_type(_piece p){
 }
 inline void move_piece(_piece& p, _location start, _location end, _piece** board){
 	p = (p ^ start) ^ end;
+	assert(start >= 0 && start <= 0x77);
+	assert(end >= 0 && end <= 0x77);
 	board[start] = &zero_piece;
 	board[end] = &p;
 }
@@ -207,7 +211,10 @@ inline _property create_capture_mod (_property attacker, _property victim, _prop
 /* Zobrist hash manipulators */
 inline int get_index(_location loc, _property type, _property color)
 	/* Note: type - 1 since piece types start at 1, only useful for ordinary piece moves. */
-	{	return 64 * (multiplier[type - 1] + (color)) + x88to64(loc);	}
+	{
+		assert(type - 1 >= 0 && type - 1 < 6);
+		return 64 * (multiplier[type - 1] + (color)) + x88to64(loc);
+	}
 _zobrist create_initial_hash (position &);
 inline _zobrist xor_in_out (_zobrist old, _location prev_loc, _location new_loc, _property col, _property type)
 	{	return old^xor_values[get_index(prev_loc, type, col)]^xor_values[get_index(new_loc, type, col)];	}
@@ -215,12 +222,28 @@ inline _zobrist xor_out (_zobrist old, _location prev_loc, _property col, _prope
 	{	return old^xor_values[get_index(prev_loc, type, col)];	}
 inline _zobrist xor_castling (_zobrist old, _property castle_nibble, _property prev_rights)
 	/* castle_nibble = 4 bits representing each of the castle rights. */
-	{	return old^xor_values[CASTLE_HASH_OFFSET + prev_rights]^xor_values[CASTLE_HASH_OFFSET + castle_nibble];	}
+	{
+		assert(CASTLE_HASH_OFFSET + prev_rights < 849 &&
+				CASTLE_HASH_OFFSET + prev_rights >= 0);
+		assert(CASTLE_HASH_OFFSET + castle_nibble < 849 &&
+				CASTLE_HASH_OFFSET + castle_nibble >= 0);
+		return old^xor_values[CASTLE_HASH_OFFSET + prev_rights]^xor_values[CASTLE_HASH_OFFSET + castle_nibble];
+	}
 inline _zobrist xor_epsq (_zobrist old, _location prev_epsq, _location new_epsq)
-	{return old^xor_values[EPSQ_HASH_OFFSET + x88to64(prev_epsq)]^xor_values[EPSQ_HASH_OFFSET + x88to64(new_epsq)];}
+	{
+		assert(EPSQ_HASH_OFFSET + x88to64(prev_epsq) < 849 &&
+				EPSQ_HASH_OFFSET + x88to64(prev_epsq) >= 0);
+		assert(EPSQ_HASH_OFFSET + x88to64(new_epsq) < 849 &&
+				EPSQ_HASH_OFFSET + x88to64(new_epsq) >= 0);
+		return old^xor_values[EPSQ_HASH_OFFSET + x88to64(prev_epsq)]^xor_values[EPSQ_HASH_OFFSET + x88to64(new_epsq)];
+	}
 inline _zobrist xor_promotion (_zobrist old, _location prev_loc, _location new_loc, _property col, _property promote)
 	/* Note: promote_to refers to the piece that is being promoted to, not the modifier */
-	{	return old^xor_values[get_index(prev_loc, PAWN, col)]^xor_values[get_index(new_loc, promote, col)];}
+	{
+		assert(get_index(prev_loc, PAWN, col) < 849);
+		assert(get_index(new_loc, promote, col) < 849);
+		return old^xor_values[get_index(prev_loc, PAWN, col)]^xor_values[get_index(new_loc, promote, col)];
+	}
 
 /* detail _property accessors and mutators */
 inline bool is_black_to_move (_property detail) {	return detail & 1;	}

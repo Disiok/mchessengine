@@ -14,19 +14,21 @@
 namespace myriad{
 _zobrist create_initial_hash (position& p){
 	_zobrist initial_hash = 0;
-	for (int i = 0; i < 16; i++){
+	for (int i = 0; i < 16; ++i){
 		_piece r = p.white_map[i];
 		if (r == zero_piece) break;
 		/* Note: xor is it's own inverse, so xor in and xor out is the same thing. */
 		initial_hash = xor_out(initial_hash, get_piece_location(r), WHITE, get_piece_type(r));
 	}
-	for (int i = 0; i < 16; i++){
+	for (int i = 0; i < 16; ++i){
 		_piece r = p.black_map[i];
 		if (r == zero_piece) break;
 		/* See above note. */
 		initial_hash = xor_out(initial_hash, get_piece_location(r), BLACK, get_piece_type(r));
 	}
 	initial_hash = xor_castling(initial_hash, get_castle_nibble (p.details), 0);
+	assert(EPSQ_HASH_OFFSET + x88to64(get_epsq(p.details)) >= 0 &&
+			EPSQ_HASH_OFFSET + x88to64(get_epsq(p.details)) < 849);
 	initial_hash ^= xor_values[EPSQ_HASH_OFFSET + x88to64(get_epsq(p.details))];
 	if (is_black_to_move(p.details)) initial_hash ^= xor_values[STM_INDEX];
 	return initial_hash;
@@ -66,15 +68,20 @@ inline long round::get(_zobrist hash){
 	if(hashes[index] == hash) return information [index];
 	return -1;
 }
+round::~round() {
+	delete information;
+	delete hashes;
+	delete depth;
+}
 inline bool round::set(_zobrist hash, short score, short level, bool exact, bool bound, _move cutoff){
 	if(!exact && bound){
-		for(int i = 0; i < KILLER_SIZE; i++){
+		for(int i = 0; i < KILLER_SIZE; ++i){
 			if(killer_moves[i] == 0){
 				killer_moves[i] = cutoff;
 				break;
 			}
 		}
-		for(int i = 1; i < KILLER_SIZE; i++) killer_moves[i] = killer_moves[i-1];
+		for(int i = 1; i < KILLER_SIZE; ++i) killer_moves[i] = killer_moves[i-1];
 		killer_moves[0] = cutoff;
 	}
 	int index = (int)(hash & (MASK_INDEX));

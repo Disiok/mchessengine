@@ -18,7 +18,7 @@ using namespace std;
 myriad::round table(1);					/* Do not take up so much memory! */
 position current_position;
 
-int captures = 0, mates = 0, checks = 0, ep = 0, castle = 0, promo = 0;
+unsigned int captures = 0, mates = 0, checks = 0, ep = 0, castle = 0, promo = 0;
 
 void divide(int depth);
 void perft(int depth, bool serial, bool debug);
@@ -79,7 +79,7 @@ int main() {
 				istringstream(arguments.substr(2,string::npos)) >> std::hex >> move >> std::dec;
 			else istringstream(arguments) >> move;
 			vector <_move> *all_moves = current_position.move_gen();
-			for (unsigned int i = 0; i < all_moves->size(); i++){
+			for (unsigned int i = 0; i < all_moves->size(); ++i){
 				if (all_moves->operator[](i) == move){
 					legal = true;
 					break;
@@ -123,7 +123,7 @@ int main() {
 			cout << "<< The legal move(s) in the current position are: ";
 			vector <_move>* moves = current_position.move_gen();
 			int size = moves->size();
-			for (int i = 0; i < size; i++) {
+			for (int i = 0; i < size; ++i) {
 				if (i % 8 == 0) cout << endl << "<< ";
 				cout << move_to_string(moves->operator[](i), current_position) << ". ";
 			}
@@ -131,14 +131,14 @@ int main() {
 			cout << endl << "<< ----------------move_gen End----------------" << endl;
 		} else if (!command_name.compare("rel_hashes")){
 			cout << endl << "<< ----------------Relevant Hash Numbers----------------" << endl;
-			for (int i = 0; i < 16; i++){
+			for (int i = 0; i < 16; ++i){
 				_piece r = current_position.white_map[i];
 				if (r == zero_piece) break;
 				int index = get_index(get_piece_location(r), get_piece_type(r), WHITE);
 				cout << "<< " + piece_to_string(r) << setw (15) << ": xor index = " << index <<
 						", xor value = " << xor_values[index] << endl;
 			}
-			for (int i = 0; i < 16; i++){
+			for (int i = 0; i < 16; ++i){
 				_piece r = current_position.black_map[i];
 				if (r == zero_piece) break;
 				int index = get_index(get_piece_location(r), get_piece_type(r), BLACK);
@@ -146,9 +146,13 @@ int main() {
 						", xor value = " << xor_values[index] << endl;
 			}
 			_location epsq = get_epsq(current_position.details);
+			assert(EPSQ_HASH_OFFSET + x88to64(epsq) < 849 &&
+					EPSQ_HASH_OFFSET + x88to64(epsq) >= 0);
 			cout << "<< epsq = " << location_to_string(epsq) << ", xor value = "
 				 << xor_values[EPSQ_HASH_OFFSET + x88to64(epsq)] << endl;
 			_property castle_four = get_epsq(current_position.details);
+			assert(CASTLE_HASH_OFFSET + castle_four < 849 &&
+					CASTLE_HASH_OFFSET + castle_four>= 0);
 			cout << "<< castle rights = " << get_castle_nibble (castle_four) << setw(15) << ": xor index = "
 				 << CASTLE_HASH_OFFSET + castle_four << ", xor value = "
 				 << xor_values[CASTLE_HASH_OFFSET + castle_four] << endl;
@@ -167,13 +171,13 @@ int main() {
 void divide(int depth){
 	vector <_move>* moves = current_position.move_gen();
 	int n_moves = moves->size();
-	long total = 0;
+	unsigned long total = 0;
 	_property detail = current_position.details;
 	_zobrist hash = current_position.hash_key;
-	for (int i = 0; i < n_moves; i++){
+	for (int i = 0; i < n_moves; ++i){
 		cout << "<< " << setw(9) << move_to_string(moves->operator[](i), current_position);
 		current_position.make_move(moves->operator[](i));
-		long nodes = perft_benchmark(depth - 1);
+		unsigned long nodes = perft_benchmark(depth - 1);
 		cout << setw(12) << nodes << "\t" << (string) current_position << endl;
 		total += nodes;
 		current_position.unmake_move(moves->operator[](i), detail, hash);
@@ -185,7 +189,7 @@ void divide(int depth){
 void perft (int depth, bool serial, bool debug){
 	int start = serial ? 1 : depth;
 	long nodes;
-	for (int i = start; i <= depth; i++){
+	for (int i = start; i <= depth; ++i){
 		if (debug) {
 			captures = 0;
 			mates = 0;
@@ -213,12 +217,12 @@ long perft_benchmark(int depth){
 		delete moves;
 		return size;
 	}
-	int nodes = 0, n_moves;
+	unsigned long nodes = 0, n_moves;
 	_property details = current_position.details;
 	_zobrist hash = current_position.hash_key;
 	vector <_move>* moves = current_position.move_gen();
 	n_moves = moves->size();
-	for (int i = 0; i < n_moves; i++){
+	for (unsigned int i = 0; i < n_moves; ++i){
 		current_position.make_move(moves->operator[](i));
 		/*
 		if (depth == 2) {
@@ -240,30 +244,30 @@ long perft_benchmark(int depth){
 long perft_debug (int depth, _move prev_move){
 	if (depth == 0){
 		_property modifier = get_move_modifier(prev_move);
-		if (current_position.is_in_check()) checks ++;
+		if (current_position.is_in_check()) ++checks;
 		vector<_move>* moves = current_position.move_gen();
-		if (moves->size() == 0) mates++;
+		if (moves->size() == 0) ++mates;
 		delete moves;
 		switch (modifier){
-		case WKS_CASTLE: case BKS_CASTLE: case WQS_CASTLE: case BQS_CASTLE: castle++; break;
-		case EN_PASSANT: captures++; ep++; break;
+		case WKS_CASTLE: case BKS_CASTLE: case WQS_CASTLE: case BQS_CASTLE: ++castle; break;
+		case EN_PASSANT: ++captures; ++ep; break;
 		case DOUBLE_ADVANCE: case 0: break;
 		default:
-			if (modifier < 10) promo++;
+			if (modifier < 10) ++promo;
 			else {
-				if ((modifier >> EIGHT_SH) != 0) promo++;
-				captures++;
+				if ((modifier >> EIGHT_SH) != 0) ++promo;
+				++captures;
 			}
 			break;
 		}
 		return 1;
 	}
-	int nodes = 0, n_moves;
+	unsigned long nodes = 0, n_moves;
 	_property details = current_position.details;
 	_zobrist hash = current_position.hash_key;
 	vector <_move>* moves = current_position.move_gen();
 	n_moves = moves->size();
-	for (int i = 0; i < n_moves; i++){
+	for (unsigned int i = 0; i < n_moves; ++i){
 		current_position.make_move(moves->operator[](i));
 		nodes += perft_debug(depth - 1, moves->operator[](i));
 		current_position.unmake_move(moves->operator[](i), details, hash);

@@ -64,7 +64,7 @@ void position::make_move(_move m) {
 	bool is_black = is_black_to_move(details);
 	_piece *map = is_black ? black_map : white_map;
 	_property modifier = get_move_modifier(m), castl_rights = get_castle_nibble(details), type;
-	_location start = get_move_start(m), end = get_move_end(m), king;
+	_location start = get_move_start(m), end = get_move_end(m), temp;
 	_piece& moving = piece_search (start, is_black);
 
 	hash_key = xor_epsq(hash_key, get_epsq(details), 0x00);
@@ -87,9 +87,6 @@ void position::make_move(_move m) {
 		/*Revoke castling rights due to a king move */
 		else if (type == KING) details &= is_black ? 0x003ff : 0x00cff;
 		else if (type == PAWN) details = reset_ply_count (details);
-		else if (type == 0) {
-			assert(cout << "BAD PIECE: 0x"<<hex<<moving && 0);
-		}
 		switch (end){
 		case 0x00: details = revoke_castle_right(details, WQS_CASTLE); break;
 		case 0x07: details = revoke_castle_right(details, WKS_CASTLE); break;
@@ -100,14 +97,14 @@ void position::make_move(_move m) {
 		break;
 		case WKS_CASTLE: case BKS_CASTLE:
 			move_piece(moving, start, end, board);
-			king = get_piece_location(map[0]);
-			move_piece(map[0], king, king + 0x02, board);
+			temp = get_piece_location(map[0]);
+			move_piece(map[0], temp, temp + 0x02, board);
 			details &= is_black ? 0x003ff : 0x00cff;		/* revoke both castling rights */
 			break;
 		case WQS_CASTLE: case BQS_CASTLE:
 			move_piece(moving, start, end, board);
-			king = get_piece_location(map[0]);
-			move_piece(map[0],king, king - 0x02, board);
+			temp = get_piece_location(map[0]);
+			move_piece(map[0],temp, temp - 0x02, board);
 			details &= is_black ? 0x003ff : 0x00cff;		/* revoke both castling rights */
 			break;
 		case DOUBLE_ADVANCE:
@@ -117,8 +114,12 @@ void position::make_move(_move m) {
 			hash_key = xor_in_out(hash_key, start, end, is_black, PAWN);
 			break;
 		case EN_PASSANT:
-			move_piece(moving, start, end + (is_black ? DOWN : UP), board);
+			temp = end + (is_black ? DOWN : UP);
+			move_piece(moving, start, temp, board);
 			kill (piece_search(end, !is_black), !is_black); /* assuming the end square is the capturable pawn */
+			board[end] = &zero_piece;
+			hash_key = xor_out(hash_key, end, !is_black, PAWN);
+			hash_key = xor_in_out(hash_key, start, temp, is_black, PAWN);
 			break;
 		default:
 			details = reset_ply_count (details);
@@ -324,9 +325,12 @@ vector <_move>* position::move_gen() {
 							if (get_castle_right (details, WKS_CASTLE)){
 								next_loc = c_loc + 0x02;
 								if (ks_avail && (piece_search (next_loc) == zero_piece)){
+									_piece *temp = board[next_loc];
 									move_piece(turn_map[0], c_loc, next_loc, board);
 									if (!is_in_check()) moves->push_back(create_move(0x07, 0x05, WKS_CASTLE));
 									move_piece(turn_map[0], next_loc, c_loc, board);
+									board[next_loc] = temp;
+
 								}
 							}
 							if (get_castle_right(details, WQS_CASTLE)){
@@ -334,18 +338,22 @@ vector <_move>* position::move_gen() {
 								_piece obstruct1 = piece_search(next_loc);
 								_piece obstruct2 = piece_search(next_loc + LEFT);
 								if (qs_avail && (obstruct1 == zero_piece) && (obstruct2 == zero_piece)){
+									_piece *temp = board[next_loc];
 									move_piece(turn_map[0], c_loc, next_loc, board);
 									if (!is_in_check()) moves->push_back(create_move(0x00, 0x03, WQS_CASTLE));
 									move_piece(turn_map[0], next_loc, c_loc, board);
+									board[next_loc] = temp;
 								}
 							}
 						} else {		/* If btm */
 							if (get_castle_right(details, BKS_CASTLE)){
 								next_loc = c_loc + 0x02;
 								if (ks_avail && (piece_search(next_loc) == zero_piece)){
+									_piece *temp = board[next_loc];
 									move_piece(turn_map[0], c_loc, next_loc, board);
 									if (!is_in_check()) moves->push_back(create_move(0x77, 0x75, BKS_CASTLE));
 									move_piece(turn_map[0], next_loc, c_loc, board);
+									board[next_loc] = temp;
 								}
 							}
 							if (get_castle_right(details, BQS_CASTLE)){
@@ -353,9 +361,11 @@ vector <_move>* position::move_gen() {
 								_piece obstruct1 = piece_search(next_loc);
 								_piece obstruct2 = piece_search(next_loc + LEFT);
 								if (qs_avail && (obstruct1 == zero_piece) && (obstruct2 == zero_piece)){
+									_piece *temp = board[next_loc];
 									move_piece(turn_map[0], c_loc, next_loc, board);
 									if (!is_in_check()) moves->push_back(create_move(0x70, 0x73, BQS_CASTLE));
 									move_piece(turn_map[0], next_loc, c_loc, board);
+									board[next_loc] = temp;
 								}
 							}
 						}

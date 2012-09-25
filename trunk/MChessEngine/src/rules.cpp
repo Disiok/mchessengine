@@ -36,11 +36,11 @@ position::position() : details(start_position), fullmove_clock(0) {
 	black_map[6] = create_piece(0x76, KNIGHT, BLACK);
 	white_map[7] = create_piece(0x07, ROOK, WHITE);
 	black_map[7] = create_piece(0x77, ROOK, BLACK);
-	/* Put it all into the board */
 
+	/* Put it all into the board */
 	board[0x04]= &white_map[0];
 	board[0x74]= &black_map[0];
-	for (unsigned char i = 1; i<8; ++i) {
+	for (unsigned char i = 1; i < 8; ++i) {
 		if (i <= 4){
 			board[0 + i - 1] = &white_map[i];
 			board[0x70 + i - 1] = &black_map[i];
@@ -50,7 +50,6 @@ position::position() : details(start_position), fullmove_clock(0) {
 			board[0x70 + i] = &black_map[i];
 		}
 	}
-
 	/* Fill second rank with pawns */
 	for(int i = 0; i < 8; ++i) {
 		white_map [i + 8] = create_piece(i + 0x10, PAWN, WHITE);

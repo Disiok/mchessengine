@@ -22,8 +22,8 @@ unsigned int captures = 0, mates = 0, checks = 0, ep = 0, castle = 0, promo = 0;
 
 void divide(int depth);
 void perft(int depth, bool serial, bool debug);
-long perft_benchmark(int depth);
-long perft_debug (int depth, _move previous);
+unsigned long perft_benchmark(int depth);
+unsigned long perft_debug (int depth, _move previous);
 
 int main() {
 	cout << "Welcome to Myriad Standalone Utility" << endl;
@@ -188,7 +188,7 @@ void divide(int depth){
 }
 void perft (int depth, bool serial, bool debug){
 	int start = serial ? 1 : depth;
-	long nodes;
+	unsigned long nodes;
 	for (int i = start; i <= depth; ++i){
 		if (debug) {
 			captures = 0;
@@ -210,10 +210,10 @@ void perft (int depth, bool serial, bool debug){
 		}
 	}
 }
-long perft_benchmark(int depth){
+unsigned long perft_benchmark(int depth){
 	if (depth == 1) {
 		vector<_move>* moves = current_position.move_gen();
-		long size = moves->size();
+		unsigned long size = moves->size();
 		delete moves;
 		return size;
 	}
@@ -224,24 +224,13 @@ long perft_benchmark(int depth){
 	n_moves = moves->size();
 	for (unsigned int i = 0; i < n_moves; ++i){
 		current_position.make_move(moves->operator[](i));
-		/*
-		if (depth == 2) {
-			cout << "From " << (moves->operator[](i)&255)
-					<< "to " << ((moves->operator[](i) >> 8)&255) << endl;
-		}
-
-		if (i == n_moves-1) {
-			cout << "Leaving depth " << depth << endl;
-		}
-		*/
-
 		nodes += perft_benchmark(depth - 1);
 		current_position.unmake_move(moves->operator[](i), details, hash);
 	}
 	delete moves;
 	return nodes;
 }
-long perft_debug (int depth, _move prev_move){
+unsigned long perft_debug (int depth, _move prev_move){
 	if (depth == 0){
 		_property modifier = get_move_modifier(prev_move);
 		if (current_position.is_in_check()) ++checks;

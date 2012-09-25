@@ -40,7 +40,7 @@ string move_to_string(_move m, position& p) {
 		} else {
 			string s = p_type + location_to_string(start) + ":" + location_to_string(end);
 			_property promote = modifier >> EIGHT_SH;
-			if(promote != 0) s += "=" + piecetype_to_string(promote);
+			if(promote != 0) return s + "=" + piecetype_to_string(promote);
 		}
 		return p_type + location_to_string(start) + ":" + location_to_string(end);
 	}
@@ -135,8 +135,7 @@ void position::fromFen(string fen){
 			}
 			const bool is_black = (row[x] >= 'b' && row[x] <= 'r');
 			_piece* map = is_black ? black_map : white_map;
-			//cout << insertion_index[is_black] << endl;
-			assert(insertion_index[is_black] <= 16 || cout << insertion_index[is_black] << endl && false);
+			assert(insertion_index[is_black] <= 16 || (cout << insertion_index[is_black] << endl && false));
 
 			if(row[x] == 'K' + ((is_black) * 32)) { 						/* Lower/upper case conversion, +32 */
 				map[0] = create_piece((rank << 4) + file, KING, is_black);	/* King must be at index 0 */

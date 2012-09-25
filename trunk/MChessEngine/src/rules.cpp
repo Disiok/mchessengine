@@ -451,7 +451,8 @@ vector <_move>* position::move_gen() {
 						next_loc = c_loc + pawn_direction;
 						if (piece_search(next_loc) == zero_piece) {
 							moves->push_back(create_move(c_loc, next_loc));
-							if ((c_loc & 0x70) == start_row && piece_search(next_loc + pawn_direction) == zero_piece)
+							next_loc += pawn_direction;
+							if ((c_loc & 0x70) == start_row && piece_search(next_loc) == zero_piece)
 								moves->push_back(create_move(c_loc, next_loc, DOUBLE_ADVANCE));
 						}
 					} else {

@@ -95,10 +95,10 @@ private:
 	short *depth;
 };
 class pine {
-	public:
-		static const round* table;
-		pine(const position& p);
-	private:
+public:
+	static const round* table;
+	pine(const position& p);
+private:
 };
 // ======================End of Classes======================
 // ======================Constants=====================
@@ -157,7 +157,7 @@ const char BLACK_PAWN_ATTACK[] = {DOWN_RIGHT, DOWN_LEFT};
 /* Default Values */
 const _property start_position = 0xf00;		/* detail value at startposition */
 extern _piece zero_piece; 					/* WARNING: g++ will not allow this to be declared const,
- 	 	 	 	 	 	 	 	 	 	 	 * but DO NOT CHANGE this value. */
+ * but DO NOT CHANGE this value. */
 /* Zobrist hash property values */
 const int multiplier [] = {0, 2, 4, 6, 8, 10};
 const int CASTLE_HASH_OFFSET = 832;
@@ -188,77 +188,73 @@ inline _property get_piece_type(_piece p){
 }
 inline void move_piece(_piece& p, _location start, _location end, _piece** board){
 	p = (p ^ start) ^ end;
-	assert(start >= 0 && start <= 0x77);
-	assert(end >= 0 && end <= 0x77);
+	assert(start <= 0x77);
+	assert(end <= 0x77);
 	board[start] = &zero_piece;
 	board[end] = &p;
 }
 inline _piece create_piece (_location loc, _property type, _property color)
-	{ return (color << COLOR_SH) + (type << EIGHT_SH) + loc; }
+{ return (color << COLOR_SH) + (type << EIGHT_SH) + loc; }
 
 /* _move accessors and mutators */
 inline _location get_move_start(_move m){ return m & LOCATION_MASK; }
 inline _location get_move_end (_move m) { return (m >> EIGHT_SH) & LOCATION_MASK; }
 inline _property get_move_modifier (_move m) { return m >> SIXTEEN_SH; }
 inline _move create_move (_location start, _location end, _property modifier = 0)
-	{	return (modifier << SIXTEEN_SH) + (end << EIGHT_SH) + start; }
+{	return (modifier << SIXTEEN_SH) + (end << EIGHT_SH) + start; }
 /* Create modifiers for capture moves. Bitstring formatted: (MSB-> LSB) promotion piece type,
  * victim piece type, attacker piece type, 4 bits each. (NB: 4 bits now)
  * Organized this way so direct comparison i.e. _move a > _move b is possible in move-ordering */
 inline _property create_capture_mod (_property attacker, _property victim, _property promote = 0)
-	{	return (promote << EIGHT_SH) + (victim << FOUR_SH) + (attacker); }
+{	return (promote << EIGHT_SH) + (victim << FOUR_SH) + (attacker); }
 
 /* Zobrist hash manipulators */
 inline int get_index(_location loc, _property type, _property color)
-	/* Note: type - 1 since piece types start at 1, only useful for ordinary piece moves. */
-	{
-		assert(type - 1 >= 0 && type - 1 < 6);
-		return 64 * (multiplier[type - 1] + (color)) + x88to64(loc);
-	}
+/* Note: type - 1 since piece types start at 1, only useful for ordinary piece moves. */
+{
+	assert(type - 1 >= 0 && type - 1 < 6);
+	return 64 * (multiplier[type - 1] + (color)) + x88to64(loc);
+}
 _zobrist create_initial_hash (position &);
 inline _zobrist xor_in_out (_zobrist old, _location prev_loc, _location new_loc, _property col, _property type)
-	{	return old^xor_values[get_index(prev_loc, type, col)]^xor_values[get_index(new_loc, type, col)];	}
+{	return old^xor_values[get_index(prev_loc, type, col)]^xor_values[get_index(new_loc, type, col)];	}
 inline _zobrist xor_out (_zobrist old, _location prev_loc, _property col, _property type)
-	{	return old^xor_values[get_index(prev_loc, type, col)];	}
+{	return old^xor_values[get_index(prev_loc, type, col)];	}
 inline _zobrist xor_castling (_zobrist old, _property castle_nibble, _property prev_rights)
-	/* castle_nibble = 4 bits representing each of the castle rights. */
-	{
-		assert(CASTLE_HASH_OFFSET + prev_rights < 849 &&
-				CASTLE_HASH_OFFSET + prev_rights >= 0);
-		assert(CASTLE_HASH_OFFSET + castle_nibble < 849 &&
-				CASTLE_HASH_OFFSET + castle_nibble >= 0);
-		return old^xor_values[CASTLE_HASH_OFFSET + prev_rights]^xor_values[CASTLE_HASH_OFFSET + castle_nibble];
-	}
+/* castle_nibble = 4 bits representing each of the castle rights. */
+{
+	assert(CASTLE_HASH_OFFSET + prev_rights < 849 && CASTLE_HASH_OFFSET + prev_rights >= 0);
+	assert(CASTLE_HASH_OFFSET + castle_nibble < 849 && CASTLE_HASH_OFFSET + castle_nibble >= 0);
+	return old^xor_values[CASTLE_HASH_OFFSET + prev_rights]^xor_values[CASTLE_HASH_OFFSET + castle_nibble];
+}
 inline _zobrist xor_epsq (_zobrist old, _location prev_epsq, _location new_epsq)
-	{
-		assert(EPSQ_HASH_OFFSET + x88to64(prev_epsq) < 849 &&
-				EPSQ_HASH_OFFSET + x88to64(prev_epsq) >= 0);
-		assert(EPSQ_HASH_OFFSET + x88to64(new_epsq) < 849 &&
-				EPSQ_HASH_OFFSET + x88to64(new_epsq) >= 0);
-		return old^xor_values[EPSQ_HASH_OFFSET + x88to64(prev_epsq)]^xor_values[EPSQ_HASH_OFFSET + x88to64(new_epsq)];
-	}
+{
+	assert(EPSQ_HASH_OFFSET + x88to64(prev_epsq) < 849 && EPSQ_HASH_OFFSET + x88to64(prev_epsq) >= 0);
+	assert(EPSQ_HASH_OFFSET + x88to64(new_epsq) < 849 && EPSQ_HASH_OFFSET + x88to64(new_epsq) >= 0);
+	return old^xor_values[EPSQ_HASH_OFFSET + x88to64(prev_epsq)]^xor_values[EPSQ_HASH_OFFSET + x88to64(new_epsq)];
+}
 inline _zobrist xor_promotion (_zobrist old, _location prev_loc, _location new_loc, _property col, _property promote)
-	/* Note: promote_to refers to the piece that is being promoted to, not the modifier */
-	{
-		assert(get_index(prev_loc, PAWN, col) < 849);
-		assert(get_index(new_loc, promote, col) < 849);
-		return old^xor_values[get_index(prev_loc, PAWN, col)]^xor_values[get_index(new_loc, promote, col)];
-	}
+/* Note: promote_to refers to the piece that is being promoted to, not the modifier */
+{
+	assert(get_index(prev_loc, PAWN, col) < 849);
+	assert(get_index(new_loc, promote, col) < 849);
+	return old^xor_values[get_index(prev_loc, PAWN, col)]^xor_values[get_index(new_loc, promote, col)];
+}
 
 /* detail _property accessors and mutators */
 inline bool is_black_to_move (_property detail) {	return detail & 1;	}
 inline _property get_epsq (_property detail) {	return detail >> EP_SH;	}
 inline _property clear_epsq (_property detail) {	return detail & 0xfff;	}
 inline _property set_epsq (_property detail, _location epsq) /* assuming clear_epsq has been called */
-	{	return detail + (epsq << EP_SH);	}
+{	return detail + (epsq << EP_SH);	}
 inline _property increase_ply_count (_property detail) {	return (detail ^ 1) + 2;	}
 inline _property reset_ply_count (_property detail) {	return detail & (~0xfe);	}
 inline int get_plycount(_property detail) {	return (detail >> 1) & 0x7f;	}
 inline _property get_castle_right (_property detail, _property modifier)
-	{	return (detail >> (modifier + 7)) & 1; }
+{	return (detail >> (modifier + 7)) & 1; }
 inline _property get_castle_nibble (_property detail) {	return (detail >> 7) & NIBBLE_MASK;	}
 inline _property revoke_castle_right (_property detail, _property modifier)
-	{	return detail & (~(1 << (modifier + 7)));	}
+{	return detail & (~(1 << (modifier + 7)));	}
 // ======================End of Functions======================
 }
 

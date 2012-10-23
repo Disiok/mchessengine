@@ -1,7 +1,7 @@
 /*
  * tables.cpp
  * ============================================
- * (c) Spark Team, Aug 2012.
+ * (c) Spark Team, Oct 2012.
  * The Spark Team reserves all intellectual rights to the following source code.
  * The code may not be distributed or modified for personal use, except with the
  * express permission of a team member.
@@ -49,7 +49,7 @@ round::round(int bits){
 			unique = true;
 			for(int k = 0; k < i; ++k){
 				if(data == xor_values[k]){
-					data = rand();
+					data = rand64();
 					unique = false;
 				}
 			}
@@ -62,18 +62,18 @@ round::round(int bits){
 	for(int i = 0; i < bits; ++i) temp |= 1 << i;
 	MASK_INDEX = temp;
 }
-/* Round functions */
-inline long round::get(_zobrist hash){
-	int index = (int)(hash & (MASK_INDEX));
-	if(hashes[index] == hash) return information [index];
-	return -1;
-}
 round::~round() {
 	delete information;
 	delete hashes;
 	delete depth;
 }
-inline bool round::set(_zobrist hash, short score, short level, bool exact, bool bound, _move cutoff){
+/* Round functions */
+long round::get(_zobrist hash){
+	int index = (int)(hash & (MASK_INDEX));
+	if(hashes[index] == hash) return information [index];
+	return -1;
+}
+bool round::set(_zobrist hash, short score, short level, bool exact, bool bound, _move cutoff){
 	if(!exact && bound){
 		for(int i = 0; i < KILLER_SIZE; ++i){
 			if(killer_moves[i] == 0){

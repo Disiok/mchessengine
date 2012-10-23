@@ -1,11 +1,13 @@
-//============================================================================
-// Name        : MChessEngine.cpp
-// Author      :
-// Version     :
-// Copyright   : Your copyright notice
-// Description : Hello World in C++, Ansi-style
-//============================================================================
-
+/*
+ * engine.cpp
+ * ============================================
+ * (c) Spark Team, Oct 2012.
+ * The Spark Team reserves all intellectual rights to the following source code.
+ * The code may not be distributed or modified for personal use, except with the
+ * express permission of a team member.
+ * ============================================
+ * The main class.
+ */
 #include <iostream>
 #include <ctime>
 #include "myriad.h"
@@ -13,7 +15,6 @@
 
 using namespace myriad;
 using namespace std;
-
 
 myriad::round table(1);					/* Do not take up so much memory! */
 position current_position;
@@ -98,6 +99,7 @@ int main() {
 			cout << "<< display-> displays the current position." << endl;
 			cout << "<< divide <depth>-> calls divide for the current position to a specified depth." << endl;
 			cout << "<< exit-> closes this debug utility." << endl;
+			cout << "<< hash_sz <size>-> Sets the size of the hash table." << endl;
 			cout << "<< make_move <move>-> makes a move and displays the resultant position." << endl;
 			cout << "<< \t make_move x<moveh>-> move specified in hexadecimal." << endl;
 			cout << "<< move_gen-> calls the move_gen function against the current position. " << endl;
@@ -130,7 +132,7 @@ int main() {
 			delete moves;
 			cout << endl << "<< ----------------move_gen End----------------" << endl;
 		} else if (!command_name.compare("rel_hashes")){
-			cout << endl << "<< ----------------Relevant Hash Numbers----------------" << endl;
+			cout << "<< ----------------Relevant Hash Numbers----------------" << endl;
 			for (int i = 0; i < 16; ++i){
 				_piece r = current_position.white_map[i];
 				if (r == zero_piece) break;
@@ -146,19 +148,23 @@ int main() {
 						", xor value = " << xor_values[index] << endl;
 			}
 			_location epsq = get_epsq(current_position.details);
-			assert(EPSQ_HASH_OFFSET + x88to64(epsq) < 849 &&
-					EPSQ_HASH_OFFSET + x88to64(epsq) >= 0);
+			assert(EPSQ_HASH_OFFSET + x88to64(epsq) < 849 && EPSQ_HASH_OFFSET + x88to64(epsq) >= 0);
 			cout << "<< epsq = " << location_to_string(epsq) << ", xor value = "
 				 << xor_values[EPSQ_HASH_OFFSET + x88to64(epsq)] << endl;
 			_property castle_four = get_epsq(current_position.details);
-			assert(CASTLE_HASH_OFFSET + castle_four < 849 &&
-					CASTLE_HASH_OFFSET + castle_four>= 0);
+			assert(CASTLE_HASH_OFFSET + castle_four < 849 && CASTLE_HASH_OFFSET + castle_four>= 0);
 			cout << "<< castle rights = " << get_castle_nibble (castle_four) << setw(15) << ": xor index = "
 				 << CASTLE_HASH_OFFSET + castle_four << ", xor value = "
 				 << xor_values[CASTLE_HASH_OFFSET + castle_four] << endl;
 			if (is_black_to_move(current_position.details))
 				cout << "<< Black to move, xor value = " << xor_values[STM_INDEX] << endl;
 			cout << endl << "<< --------------Relevant Hash Numbers End--------------" << endl;
+		} else if (!command_name.compare("hash_sz")){
+			getline(ss, arguments, ' ');
+			int tb_size;
+			stringstream(arguments) >> tb_size;
+			table = tb_size;
+			cout << "Hash table set to " << tb_size << " bits per entry." << endl;
 		} else if (!command_name.compare("display")){
 			cout << current_position.display_board() << endl;
 		} else if (!command_name.compare("exit")){
@@ -168,6 +174,7 @@ int main() {
 		} else cout << "<< Input not recognized. Input 'help' for the help menu." << endl;
 	} while (input.compare("exit"));
 }
+/* Perft and divide utilities */
 void divide(int depth){
 	vector <_move>* moves = current_position.move_gen();
 	int n_moves = moves->size();

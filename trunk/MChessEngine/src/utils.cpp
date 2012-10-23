@@ -1,7 +1,12 @@
 /*
  * utils.cpp
- *
- * (c) Spark Team, July 2012
+ * ============================================
+ * (c) Spark Team, Oct 2012.
+ * The Spark Team reserves all intellectual rights to the following source code.
+ * The code may not be distributed or modified for personal use, except with the
+ * express permission of a team member.
+ * ============================================
+ * Contains debug utilities and other useful debug functions.
  */
 #include "myriad.h"
 
@@ -119,7 +124,7 @@ void position::fromFen(string fen){
 	unsigned int insertion_index[2] = {1,1};	/* Stores index to insert at */
 	for(int rank = 7; rank >= 0; --rank) {
 
-		if(rank > 0) getline(ss, row, '/');				/* '/' is the delimiter for ranks */
+		if(rank > 0) getline(ss, row, '/');			/* '/' is the delimiter for ranks */
 		else ss >> row;									/* No delimiter for first rank */
 		/* Note: two counters: x is location in string, file is location in chess board */
 		const size_t rowSize = row.size();
@@ -187,27 +192,9 @@ void position::fromFen(string fen){
 			i < max(insertion_index[0], insertion_index[1]); ++i) {
 		assert(get_piece_location(white_map[i]) <= 0x77);
 		assert(get_piece_location(black_map[i]) <= 0x77);
-		if ((get_piece_location(white_map[i]) & 0x88) != 0)
-			assert(cout << hex << get_piece_location(white_map[i])  && false);
-
-		if (white_map[i]) {
-			board[get_piece_location(white_map[i])] = &white_map[i];
-		}
-
-		//cout << (unsigned int)i << ": " << *(board[get_piece_location(white_map[i])]) << " should be " << white_map[i] << endl;
-		//assert(cout << (unsigned int)i << ": " << *(board[0]) << endl && ((i >= 13) ? board[0] == &white_map[13] : true));
-
-		if((get_piece_location(black_map[i]) & 0x88) != 0)
-			assert(cout << hex << get_piece_location(black_map[i])  && false);
-
-		if (black_map[i]) {
-			board[get_piece_location(black_map[i])] = &black_map[i];
-		}
-
-		//assert(cout << (unsigned int)i << ": " << *(board[0]) << endl && ((i >= 13) ? board[0] == &white_map[13] : true));
+		if (white_map[i]) board[get_piece_location(white_map[i])] = &white_map[i];
+		if (black_map[i]) board[get_piece_location(black_map[i])] = &black_map[i];
 	}
-	//assert(board[0] == &white_map[13]);
-
 	hash_key = create_initial_hash(*this);
 }
 position::operator string() {

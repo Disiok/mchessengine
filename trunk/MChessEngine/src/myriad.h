@@ -296,6 +296,11 @@ inline _property get_castle_right (_property detail, _property modifier)
 inline _property get_castle_nibble (_property detail) {	return (detail >> 7) & NIBBLE_MASK;	}
 inline _property revoke_castle_right (_property detail, _property modifier)
 	{	return detail & (~(1 << (modifier + 7)));	}
+
+
+/* tree search algorithms */
+_score minimax(hay& stack, bool color, int depth);
+_score minimaxTh(hay& stack, bool color, int depth);
 // ======================End of Functions======================
 }
 

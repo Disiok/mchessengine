@@ -27,6 +27,7 @@ unsigned long perft_benchmark(int depth);
 unsigned long perft_debug (int depth, _move previous);
 
 int main() {
+	cout << sizeof(position);
 	cout << "Welcome to Myriad Standalone Utility" << endl;
 	cout << "~~Myriad (c) Team Spark~~" << endl;
 	cout << "**Utility last updated: 10 Sep. 2012**" << endl << endl;

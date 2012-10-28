@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <cmath>
+#include <boost/thread.hpp>
 
 using namespace std;
 
@@ -183,13 +184,22 @@ public:
 	position &current;
 
 	hay (position &);
+	hay (const hay& copy);
+
+
 
 	inline _stackel get (int);
 	inline void parent_score(_score sc);
+	inline _score get_parent_score();
 	_stackel pop ();
 	void push (_move);
 	bool repetition ();
 	inline _stackel top ();
+
+	private:
+
+	//Called by both constructors
+	void create();
 };
 // ======================End of Classes======================
 
@@ -209,7 +219,7 @@ inline _location x88to64(_location loc){	return (loc >> FOUR_SH) * 8 + (loc & NI
 inline _location d64tox88(_location loc_64){	return ((loc_64 / 10) << FOUR_SH) + (loc_64 % 10);	}
 /* Generates a 64 bit unsigned long random number. */
 inline unsigned long rand64 (){
-	unsigned long rand_16 = rand() & 0xffff, result;
+	unsigned long rand_16 = rand() & 0xffff, result = 0;
 	for (int i = 0; i < 4; i++)	 result = (result << 16) + rand_16;
 	return result;
 }

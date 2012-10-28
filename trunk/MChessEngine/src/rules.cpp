@@ -760,4 +760,73 @@ inline void position::pawn_capture_reach (vector <_piece> &v, _location target, 
 	if ((obstruct1 != 0) && (get_piece_type(obstruct1) == PAWN)) v.push_back(obstruct1);
 	if ((obstruct2 != 0) && (get_piece_type(obstruct2) == PAWN)) v.push_back(obstruct2);
 }
+/*
+position::RESULT position::get_result() {
+	std::vector<_move>* all_moves = move_gen();
+	RESULT r = NO_RESULT;
+	if (all_moves->size() == 0) {
+		if (!is_in_check()) {
+			r = DRAW;
+		}
+		else {
+			r = is_black_to_move(details) ? BLACK_WINS : WHITE_WINS;
+		}
+	}
+	//ply-count is 100
+	else if ( get_plycount(details) == 100) {
+		r = DRAW;
+	}
+	else {
+		char whitePiecesLeft = get_last_index(white_map) + 1;
+		char blackPiecesLeft = get_last_index(black_map) + 1;
+		if (whitePiecesLeft == 1) {
+			if (blackPiecesLeft == 1) {
+				r = DRAW;
+			}
+			else if (blackPiecesLeft == 2) {
+				if (get_piece_type(black_map[1]) == KNIGHT) {
+					r = DRAW;
+				}
+			}
+			else if (blackPiecesLeft == 3) {
+				if (get_piece_type(black_map[1]) == KNIGHT
+						&& get_piece_type(black_map[2]) == KNIGHT) {
+					return DRAW;
+				}
+			}
+		}
+		if (blackPiecesLeft == 1) {
+			if (whitePiecesLeft == 1) {
+				r = DRAW;
+			}
+			else if (whitePiecesLeft == 2) {
+				if (get_piece_type(white_map[1]) == KNIGHT) {
+					r = DRAW;
+				}
+			}
+			else if (whitePiecesLeft == 3) {
+				if (get_piece_type(white_map[1]) == KNIGHT
+						&& get_piece_type(white_map[2]) == KNIGHT) {
+					r = DRAW;
+				}
+			}
+		}
+		else if (whitePiecesLeft == 2 && blackPiecesLeft == 2) {
+			if (get_piece_type(white_map[1]) == BISHOP
+					&& get_piece_type(black_map[1]) == BISHOP) {
+				char white_position = get_piece_location(white_map[1]),
+						black_position = get_piece_location(black_map[1]);
+				if ((((white_position >> 4)+(white_position & 7)) & 1)
+						+ (((black_position >> 4)+(black_position & 7)) & 1)
+						==1) {
+					r = DRAW;
+				}
+			}
+		}
+	}
+	delete all_moves;
+	return r;
 }
+*/
+}
+
